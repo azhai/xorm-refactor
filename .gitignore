@@ -1,0 +1,17 @@
+
+.DS_Store
+.idea/
+.vs/
+.vscode/
+models/
+vendor/
+
+*~
+*.bak
+*.exe
+*.lock
+*.sublime-project
+*.sublime-workspace
+*.upx
+
+refactor

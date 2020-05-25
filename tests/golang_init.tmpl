@@ -1,0 +1,37 @@
+package models
+
+{{$initns := .Target.InitNameSpace -}}
+import (
+	"gitee.com/azhai/xorm-refactor/cmd"
+	"gitee.com/azhai/xorm-refactor/config"
+
+	{{range $dir, $al := .Imports}}
+	{{if ne $al $dir}}{{$al}} {{end -}}
+	"{{$initns}}/{{$dir}}"{{end}}
+)
+
+var (
+	configFiles = []string{ // 设置多个路径，方便从子目录下运行
+		"./settings.yml", "../settings.yml", "../../settings.yml",
+	}
+)
+
+func init() {
+	settings, err := cmd.Prepare(configFiles)
+	if err != nil {
+		panic(err)
+	}
+	ConnectDatabases(settings.GetConnConfigMap())
+}
+
+func ConnectDatabases(confs map[string]config.ConnConfig) {
+	verbose := cmd.Verbose()
+	for key, c := range confs {
+		r, _ := config.NewReverseSource(c)
+		switch key {
+		{{- range $dir, $al := .Imports}}
+			case "{{$dir}}":
+			{{$al}}.Initialize(r, verbose){{end}}
+		}
+	}
+}

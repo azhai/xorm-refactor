@@ -1,0 +1,53 @@
+application:
+   debug: true
+   plural_table: false  #表名是否使用复数
+
+mysql: &mysql  #共用数据库配置
+   driver_name: "mysql"
+   params:
+      host: "127.0.0.1"
+      port: 3306
+      username: "root"
+      password: ""
+      database: "test"
+      options: { charset: "utf8" }
+
+connections:
+   cache:
+      driver_name: "redis"
+      params:
+         host: "127.0.0.1"
+         port: 6379
+         password: ""
+         database: "0"
+
+   default:  #默认数据库
+      read_only: false
+      table_prefix: "t_"
+      exclude_tables:
+         - "t_cron_*"
+      <<: *mysql  #引用mysql配置
+
+   cron:  #业务数据库
+      read_only: false
+      table_prefix: "t_"
+      include_tables:
+         - "t_cron_*"
+      exclude_tables:
+         - "t_cron_notice_*"
+         - "t_cron_timer_*"
+      <<: *mysql  #引用mysql配置
+
+reverse_targets:
+   -  type: "codes"
+      language: "golang"
+      multiple_files: false
+      output_dir: "./models"
+      template_path: ""
+      query_template_path: ""
+      init_template_path: ""
+      init_name_space: "gitee.com/azhai/xorm-refactor/tests/models"
+      gen_json_tag: true   # 生成JSON标签
+      gen_table_name: true # 生成TableName()方法
+      gen_query_methods: true # 生成查询方法
+      apply_mixins: true   # 使用已知的Mixin替换部分字段
