@@ -13,11 +13,79 @@ import (
 	"sort"
 	"strings"
 	"text/template"
+	"time"
 
 	"gitee.com/azhai/xorm-refactor/config"
 	"gitee.com/azhai/xorm-refactor/rewrite"
 	"github.com/azhai/gozzo-utils/filesystem"
 	"xorm.io/xorm/schemas"
+)
+
+const FIXED_STR_MAX_SIZE = 255 // 固定字符串最大长度
+
+var (
+	TypeOfTime = reflect.TypeOf(time.Time{})
+
+	Bit       = "BIT"
+	TinyInt   = "TINYINT"
+	SmallInt  = "SMALLINT"
+	MediumInt = "MEDIUMINT"
+	Int       = "INT"
+	Integer   = "INTEGER"
+	BigInt    = "BIGINT"
+
+	Enum = "ENUM"
+	Set  = "SET"
+
+	Char             = "CHAR"
+	Varchar          = "VARCHAR"
+	NChar            = "NCHAR"
+	NVarchar         = "NVARCHAR"
+	TinyText         = "TINYTEXT"
+	Text             = "TEXT"
+	NText            = "NTEXT"
+	Clob             = "CLOB"
+	MediumText       = "MEDIUMTEXT"
+	LongText         = "LONGTEXT"
+	Uuid             = "UUID"
+	UniqueIdentifier = "UNIQUEIDENTIFIER"
+	SysName          = "SYSNAME"
+
+	Date          = "DATE"
+	DateTime      = "DATETIME"
+	SmallDateTime = "SMALLDATETIME"
+	Time          = "TIME"
+	TimeStamp     = "TIMESTAMP"
+	TimeStampz    = "TIMESTAMPZ"
+	Year          = "YEAR"
+
+	Decimal    = "DECIMAL"
+	Numeric    = "NUMERIC"
+	Money      = "MONEY"
+	SmallMoney = "SMALLMONEY"
+
+	Real   = "REAL"
+	Float  = "FLOAT"
+	Double = "DOUBLE"
+
+	Binary     = "BINARY"
+	VarBinary  = "VARBINARY"
+	TinyBlob   = "TINYBLOB"
+	Blob       = "BLOB"
+	MediumBlob = "MEDIUMBLOB"
+	LongBlob   = "LONGBLOB"
+	Bytea      = "BYTEA"
+
+	Bool    = "BOOL"
+	Boolean = "BOOLEAN"
+
+	Serial    = "SERIAL"
+	BigSerial = "BIGSERIAL"
+
+	Json  = "JSON"
+	Jsonb = "JSONB"
+
+	Array = "ARRAY"
 )
 
 // Golang represents a golang language
@@ -111,8 +179,11 @@ func genGoImports(tables map[string]*schemas.Table) map[string]string {
 	imports := make(map[string]string)
 	for _, table := range tables {
 		for _, col := range table.Columns() {
-			if type2string(col) == "time.Time" {
+			s := type2string(col)
+			if s == "time.Time" {
 				imports["time"] = ""
+			} else if s == "sql.NullString" {
+				// imports["database/sql"] = ""
 			}
 		}
 	}
@@ -120,12 +191,7 @@ func genGoImports(tables map[string]*schemas.Table) map[string]string {
 }
 
 func type2string(col *schemas.Column) string {
-	st := col.SQLType
-	t := schemas.SQLType2Type(st)
-	s := t.String()
-	if s == "[]uint8" {
-		return "[]byte"
-	}
+	_, s := SQLType2Type(col.SQLType)
 	return s
 }
 
@@ -208,15 +274,58 @@ func tagXorm(table *schemas.Table, col *schemas.Column) string {
 		res = append(res, uistr)
 	}
 
-	nstr := col.SQLType.Name
+	res = append(res, GetColTypeString(col))
+	if len(res) > 0 {
+		return fmt.Sprintf(`%s:"%s"`, config.XORM_TAG_NAME, strings.Join(res, " "))
+	}
+	return ""
+}
+
+// default sql type change to go types
+func SQLType2Type(st schemas.SQLType) (rtype reflect.Type, rtstr string) {
+	name := strings.ToUpper(st.Name)
+	rtype = reflect.TypeOf("")
+	switch name {
+	case Bool:
+		rtype = reflect.TypeOf(true)
+	case Bit, TinyInt, SmallInt, MediumInt, Int, Integer, Serial:
+		rtype = reflect.TypeOf(1)
+	case BigInt, BigSerial:
+		rtype = reflect.TypeOf(int64(1))
+	case Float, Real:
+		rtype = reflect.TypeOf(float32(1))
+	case Double:
+		rtype = reflect.TypeOf(float64(1))
+	case DateTime, Date, Time, TimeStamp, TimeStampz, SmallDateTime, Year:
+		rtype = TypeOfTime
+	case TinyBlob, Blob, MediumBlob, LongBlob, Bytea, Binary, VarBinary, UniqueIdentifier:
+		rtype, rtstr = reflect.TypeOf([]byte{}), "[]byte"
+	case Varchar, NVarchar, TinyText, Text, NText, MediumText, LongText:
+		if st.DefaultLength == 0 || st.DefaultLength > FIXED_STR_MAX_SIZE {
+			rtstr = "sql.NullString"
+		}
+		// case Char, NChar, Enum, Set, Uuid, Clob, SysName:
+		//	rtstr = rtype.String()
+		// case Decimal, Numeric, Money, SmallMoney:
+		//	rtstr = rtype.String()
+	}
+	if rtstr == "" {
+		rtstr = rtype.String()
+	}
+	return
+}
+
+// get the col type include length, for example: VARCHAR(255)
+func GetColTypeString(col *schemas.Column) string {
+	ctstr := col.SQLType.Name
 	if col.Length != 0 {
-		if col.Length2 != 0 {
-			nstr += fmt.Sprintf("(%v,%v)", col.Length, col.Length2)
-		} else {
-			nstr += fmt.Sprintf("(%v)", col.Length)
+		if col.Length2 != 0 { // float, decimal
+			ctstr += fmt.Sprintf("(%v,%v)", col.Length, col.Length2)
+		} else { // int, char, varchar
+			ctstr += fmt.Sprintf("(%v)", col.Length)
 		}
 	} else if len(col.EnumOptions) > 0 { // enum
-		nstr += "("
+		ctstr += "("
 		opts := ""
 
 		enumOptions := make([]string, 0, len(col.EnumOptions))
@@ -228,10 +337,10 @@ func tagXorm(table *schemas.Table, col *schemas.Column) string {
 		for _, v := range enumOptions {
 			opts += fmt.Sprintf(",'%v'", v)
 		}
-		nstr += strings.TrimLeft(opts, ",")
-		nstr += ")"
-	} else if len(col.SetOptions) > 0 { // enum
-		nstr += "("
+		ctstr += strings.TrimLeft(opts, ",")
+		ctstr += ")"
+	} else if len(col.SetOptions) > 0 { // set
+		ctstr += "("
 		opts := ""
 
 		setOptions := make([]string, 0, len(col.SetOptions))
@@ -243,12 +352,8 @@ func tagXorm(table *schemas.Table, col *schemas.Column) string {
 		for _, v := range setOptions {
 			opts += fmt.Sprintf(",'%v'", v)
 		}
-		nstr += strings.TrimLeft(opts, ",")
-		nstr += ")"
+		ctstr += strings.TrimLeft(opts, ",")
+		ctstr += ")"
 	}
-	res = append(res, nstr)
-	if len(res) > 0 {
-		return fmt.Sprintf(`%s:"%s"`, config.XORM_TAG_NAME, strings.Join(res, " "))
-	}
-	return ""
+	return ctstr
 }
