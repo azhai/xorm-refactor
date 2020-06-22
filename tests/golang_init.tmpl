@@ -21,17 +21,19 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	ConnectDatabases(settings.GetConnConfigMap())
+	confs := settings.GetConnConfigMap()
+	ConnectDatabases(confs, settings.Logging.SqlFile)
 }
 
-func ConnectDatabases(confs map[string]config.ConnConfig) {
+func ConnectDatabases(confs map[string]config.ConnConfig, logfile string) {
 	verbose := cmd.Verbose()
+	logger := config.NewSqlLogger(logfile)
 	for key, c := range confs {
 		r, _ := config.NewReverseSource(c)
 		switch key {
 		{{- range $dir, $al := .Imports}}
 			case "{{$dir}}":
-			{{$al}}.Initialize(r, verbose){{end}}
+			{{$al}}.Initialize(r, logger, verbose){{end}}
 		}
 	}
 }

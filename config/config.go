@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"gitee.com/azhai/xorm-refactor/config/dialect"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -26,6 +26,12 @@ type IReverseSettings interface {
 type AppConfig struct {
 	Debug       bool `json:"debug" yaml:"debug"`
 	PluralTable bool `json:"plural_table" yaml:"plural_table"`
+}
+
+type LogConfig struct {
+	AccessFile string `json:"access_file" yaml:"access_file"`
+	ErrorFile  string `json:"error_file" yaml:"error_file"`
+	SqlFile    string `json:"sql_file" yaml:"sql_file"`
 }
 
 type PartConfig struct {
@@ -88,6 +94,7 @@ func (ds DataSource) GetDriverName() string {
 
 type Settings struct {
 	Application    AppConfig             `json:"application" yaml:"application"`
+	Logging        LogConfig             `json:"logging" yaml:"logging"`
 	Connections    map[string]ConnConfig `json:"connections" yaml:"connections"`
 	ReverseTargets []ReverseTarget       `json:"reverse_targets" yaml:"reverse_targets"`
 }

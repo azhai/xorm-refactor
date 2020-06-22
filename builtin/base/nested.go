@@ -52,7 +52,7 @@ func (n NestedMixin) ChildrenFilter(rank int, depthFirst bool) FilterFunc {
 			query = query.Where("rgt < ? AND lft > ?", n.Rgt, n.Lft)
 		}
 		if rank > 0 { // 限制层级
-			query = query.Where("depth < ?", n.Depth+rank)
+			query = query.Where("depth <= ?", n.Depth+rank)
 		}
 		if rank != 1 && depthFirst { // 多层先按高度排序
 			query = query.OrderBy("depth ASC")

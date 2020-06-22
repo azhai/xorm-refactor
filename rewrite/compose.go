@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	utils "github.com/azhai/gozzo-utils/common"
+	"gitee.com/azhai/xorm-refactor/utils"
 )
 
 const MODEL_EXTENDS = "`json:\",inline\" xorm:\"extends\"`"

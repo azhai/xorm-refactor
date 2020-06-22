@@ -13,7 +13,6 @@ import (
 	"text/template"
 
 	"gitee.com/azhai/xorm-refactor/config"
-	"gitee.com/azhai/xorm-refactor/language"
 	"gitee.com/azhai/xorm-refactor/rewrite"
 	"github.com/azhai/gozzo-utils/filesystem"
 	"github.com/gobwas/glob"
@@ -23,8 +22,8 @@ import (
 )
 
 var (
-	formatters   = map[string]language.Formatter{}
-	importters   = map[string]language.Importter{}
+	formatters   = map[string]Formatter{}
+	importters   = map[string]Importter{}
 	defaultFuncs = template.FuncMap{
 		"Lower":            strings.ToLower,
 		"Upper":            strings.ToUpper,
@@ -134,7 +133,7 @@ func convertMapper(mapname string) names.Mapper {
 
 func Reverse(target *config.ReverseTarget, source *config.DataSource, verbose bool) error {
 	formatter := formatters[target.Formatter]
-	lang := language.GetLanguage(target.Language)
+	lang := GetLanguage(target.Language)
 	if lang != nil {
 		lang.FixTarget(target)
 		formatter = lang.Formatter
@@ -158,9 +157,9 @@ func Reverse(target *config.ReverseTarget, source *config.DataSource, verbose bo
 
 	var tmpl *template.Template
 	if isRedis {
-		tmpl = language.GetGolangTemplate("cache", nil)
+		tmpl = GetGolangTemplate("cache", nil)
 	} else {
-		tmpl = language.GetGolangTemplate("conn", nil)
+		tmpl = GetGolangTemplate("conn", nil)
 	}
 	buf := new(bytes.Buffer)
 	data := map[string]interface{}{
@@ -186,7 +185,7 @@ func Reverse(target *config.ReverseTarget, source *config.DataSource, verbose bo
 
 func RunReverse(target *config.ReverseTarget, tableSchemas []*schemas.Table) error {
 	// load configuration from language
-	lang := language.GetLanguage(target.Language)
+	lang := GetLanguage(target.Language)
 	funcs := newFuncs()
 	formatter := formatters[target.Formatter]
 	importter := importters[target.Importter]
@@ -216,12 +215,12 @@ func RunReverse(target *config.ReverseTarget, tableSchemas []*schemas.Table) err
 	if target.QueryTemplatePath != "" {
 		qt, err := ioutil.ReadFile(target.QueryTemplatePath)
 		if err == nil && len(qt) > 0 {
-			tmplQuery = language.NewTemplate("custom-query", string(qt), funcs)
+			tmplQuery = NewTemplate("custom-query", string(qt), funcs)
 		} else {
 			target.GenQueryMethods = false
 		}
 	} else {
-		tmplQuery = language.GetGolangTemplate("query", funcs)
+		tmplQuery = GetGolangTemplate("query", funcs)
 	}
 	var err error
 	if target.TemplatePath != "" {
@@ -234,7 +233,7 @@ func RunReverse(target *config.ReverseTarget, tableSchemas []*schemas.Table) err
 	if bs == nil {
 		return errors.New("you have to indicate template / template path or a language")
 	}
-	tmpl := language.NewTemplate("custom-model", string(bs), funcs)
+	tmpl := NewTemplate("custom-model", string(bs), funcs)
 	queryImports := map[string]string{"xorm.io/xorm": ""}
 
 	tables := make(map[string]*schemas.Table)
@@ -339,9 +338,9 @@ func GenModelInitFile(target config.ReverseTarget, imports map[string]string) er
 		if err != nil || len(it) == 0 {
 			return err
 		}
-		tmpl = language.NewTemplate("custom-init", string(it), nil)
+		tmpl = NewTemplate("custom-init", string(it), nil)
 	} else {
-		tmpl = language.GetGolangTemplate("init", nil)
+		tmpl = GetGolangTemplate("init", nil)
 	}
 	buf := new(bytes.Buffer)
 	data := map[string]interface{}{

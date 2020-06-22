@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package language
+package refactor
 
 import (
 	"errors"
@@ -287,8 +287,14 @@ func SQLType2Type(st schemas.SQLType) (rtype reflect.Type, rtstr string) {
 	rtype = reflect.TypeOf("")
 	switch name {
 	case Bool:
-		rtype = reflect.TypeOf(true)
-	case Bit, TinyInt, SmallInt, MediumInt, Int, Integer, Serial:
+		rtype = reflect.TypeOf(false)
+	case Bit, TinyInt:
+		if st.DefaultLength == 1 {
+			rtype = reflect.TypeOf(false)
+		} else {
+			rtype = reflect.TypeOf(1)
+		}
+	case SmallInt, MediumInt, Int, Integer, Serial:
 		rtype = reflect.TypeOf(1)
 	case BigInt, BigSerial:
 		rtype = reflect.TypeOf(int64(1))

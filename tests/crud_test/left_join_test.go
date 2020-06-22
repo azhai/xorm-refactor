@@ -3,9 +3,10 @@ package crud_test
 import (
 	"testing"
 
+	"gitee.com/azhai/xorm-refactor/utils"
+
 	"gitee.com/azhai/xorm-refactor/builtin/base"
 	"gitee.com/azhai/xorm-refactor/builtin/join"
-	"gitee.com/azhai/xorm-refactor/inspect"
 	"gitee.com/azhai/xorm-refactor/tests/contrib"
 	_ "gitee.com/azhai/xorm-refactor/tests/models"
 	db "gitee.com/azhai/xorm-refactor/tests/models/default"
@@ -36,7 +37,7 @@ func TestJoin01FindUserGroups(t *testing.T) {
 	var objs []*contrib.UserWithGroup
 	if err == nil && total > 0 {
 		var cols []string
-		cols = inspect.GetColumns(m.User, m.User.TableName(), cols)
+		cols = utils.GetColumns(m.User, m.User.TableName(), cols)
 		query = filter(query).Cols(cols...)
 		if testing.Verbose() {
 			pp.Println(cols)

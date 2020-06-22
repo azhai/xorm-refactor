@@ -233,8 +233,7 @@ func (q *ClusterQuery) GetTable() string {
 
 // 重新构建当前查询，因为每次 COUNT 和 FIND 等操作会释放查询（只有主表名还保留着）
 func (q *ClusterQuery) GetQuery() *xorm.Session {
-	query := q.Session.Clone()
-	query = query.Table(q.GetTable())
+	query := q.Session.Table(q.GetTable())
 	for _, filter := range q.filters {
 		query = filter(query)
 	}

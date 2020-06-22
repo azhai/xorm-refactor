@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	utils "github.com/azhai/gozzo-utils/common"
+	"gitee.com/azhai/xorm-refactor/utils"
 	"github.com/azhai/gozzo-utils/redisw"
 	"github.com/gomodule/redigo/redis"
 )

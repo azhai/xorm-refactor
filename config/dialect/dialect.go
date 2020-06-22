@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	utils "github.com/azhai/gozzo-utils/common"
+	"gitee.com/azhai/xorm-refactor/utils"
 )
 
 var (

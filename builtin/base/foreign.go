@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"gitee.com/azhai/xorm-refactor/builtin/join"
-	"gitee.com/azhai/xorm-refactor/inspect"
+	"gitee.com/azhai/xorm-refactor/utils"
 	"xorm.io/xorm"
 )
 
@@ -18,7 +18,7 @@ func JoinQuery(engine *xorm.Engine, query *xorm.Session,
 		query = engine.Table(table)
 	}
 	var cols []string
-	cols = inspect.GetColumns(foreign.Table, frgAlias, cols)
+	cols = utils.GetColumns(foreign.Table, frgAlias, cols)
 	query = query.Join(string(foreign.Join), frgTable, cond)
 	return query, cols
 }
@@ -130,7 +130,7 @@ func (q *LeftJoinQuery) OrderBy(order string) *LeftJoinQuery {
 func (q *LeftJoinQuery) GetQuery() *xorm.Session {
 	buf := new(bytes.Buffer)
 	buf.WriteString(Qprintf(q.engine, "%s.*", q.Native.TableName()))
-	query := q.Session.Clone()
+	query := q.Session
 	for _, filter := range q.filters {
 		query = filter(query)
 	}
@@ -146,7 +146,7 @@ func (q *LeftJoinQuery) GetQuery() *xorm.Session {
 
 // 计数，由于左联接数量只跟主表有关，这里不去 JOIN
 func (q *LeftJoinQuery) Count(bean ...interface{}) (int64, error) {
-	query := q.Session.Clone()
+	query := q.Session
 	for _, filter := range q.filters {
 		query = filter(query)
 	}

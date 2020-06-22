@@ -1,4 +1,4 @@
-package inspect
+package utils
 
 import (
 	"fmt"
@@ -58,4 +58,15 @@ func GetColumns(v interface{}, alias string, cols []string) []string {
 		}
 	}
 	return cols
+}
+
+func GetChangesFor(v interface{}, changes map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	cols := GetColumns(v, "", []string{})
+	for _, c := range cols {
+		if val, ok := changes[c]; ok {
+			result[c] = val
+		}
+	}
+	return result
 }

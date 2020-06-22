@@ -8,7 +8,7 @@ import (
 
 	"gitee.com/azhai/xorm-refactor/builtin/access"
 	"gitee.com/azhai/xorm-refactor/builtin/base"
-	"gitee.com/azhai/xorm-refactor/tests/models/default"
+	db "gitee.com/azhai/xorm-refactor/tests/models/default"
 )
 
 // 清空表
@@ -48,8 +48,8 @@ func GetUserInfo(user *db.User) map[string]interface{} {
 	if user.Avatar != "" {
 		info["avatar"] = user.Avatar
 	}
-	if user.Introduction != "" {
-		info["introduction"] = user.Introduction
+	if intro := base.GetNullString(user.Introduction); intro != "" {
+		info["introduction"] = intro
 	}
 	return info
 }

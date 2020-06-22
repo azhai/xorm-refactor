@@ -1,4 +1,4 @@
-package language
+package refactor
 
 import (
 	"fmt"
@@ -38,6 +38,7 @@ import (
 	"gitee.com/azhai/xorm-refactor/config"
 	"github.com/azhai/gozzo-utils/redisw"
 	"github.com/gomodule/redigo/redis"
+	"xorm.io/xorm/log"
 )
 
 const (
@@ -50,7 +51,7 @@ var (
 )
 
 // 初始化、连接数据库和缓存
-func Initialize(r *config.ReverseSource, verbose bool) {
+func Initialize(r *config.ReverseSource, logger log.Logger, verbose bool) {
 	var wrapper *redisw.RedisWrapper
 	d := config.ReverseSource2RedisDialect(r)
 	conn, err := d.Connect(verbose)
@@ -100,6 +101,7 @@ import (
 	"gitee.com/azhai/xorm-refactor/config"
 	_ "{{.ImporterPath}}"
 	"xorm.io/xorm"
+	"xorm.io/xorm/log"
 )
 
 var (
@@ -107,12 +109,13 @@ var (
 )
 
 // 初始化、连接数据库和缓存
-func Initialize(r *config.ReverseSource, verbose bool) {
+func Initialize(r *config.ReverseSource, logger log.Logger, verbose bool) {
 	var err error
 	engine, err = r.Connect(verbose)
 	if err != nil {
 		panic(err)
 	}
+	engine.SetLogger(logger)
 }
 
 // 查询某张数据表
@@ -191,17 +194,19 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	ConnectDatabases(settings.GetConnConfigMap())
+	confs := settings.GetConnConfigMap()
+	ConnectDatabases(confs, settings.Logging.SqlFile)
 }
 
-func ConnectDatabases(confs map[string]config.ConnConfig) {
+func ConnectDatabases(confs map[string]config.ConnConfig, logfile string) {
 	verbose := cmd.Verbose()
+	logger := config.NewSqlLogger(logfile)
 	for key, c := range confs {
 		r, _ := config.NewReverseSource(c)
 		switch key {
 		{{- range $dir, $al := .Imports}}
 			case "{{$dir}}":
-			{{$al}}.Initialize(r, verbose){{end}}
+			{{$al}}.Initialize(r, logger, verbose){{end}}
 		}
 	}
 }

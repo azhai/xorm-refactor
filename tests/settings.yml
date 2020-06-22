@@ -2,6 +2,9 @@ application:
    debug: true
    plural_table: false  #表名是否使用复数
 
+logging:
+   sql_file: ""
+
 mysql: &mysql  #共用数据库配置
    driver_name: "mysql"
    params:

@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"gitee.com/azhai/xorm-refactor/utils"
+
 	"gitee.com/azhai/xorm-refactor/builtin/base"
 	"gitee.com/azhai/xorm-refactor/tests/contrib"
 	_ "gitee.com/azhai/xorm-refactor/tests/models"
@@ -71,7 +73,7 @@ func TestCron02AddRecords(t *testing.T) {
 			obj.RunClock = "16:30:00"
 			start = start.Add(time.Hour * 24 * 3)
 		}
-		if contrib.IsHoliday(ymd) {
+		if utils.IsHoliday(ymd) {
 			continue
 		}
 		objs = append(objs, obj)

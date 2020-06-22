@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"gitee.com/azhai/xorm-refactor/builtin/usertype"
-	"github.com/azhai/gozzo-utils/common"
+	"gitee.com/azhai/xorm-refactor/utils"
 )
 
 type IPermission interface {
@@ -54,7 +54,7 @@ func Authorize(auth IUserAuth, act uint16, url string) error {
 	// 2. 匿名用户，如果是公开资源放行，否则失败
 	if utype == usertype.ANONYMOUS || utype == usertype.FORBIDDEN {
 		if urls := auth.GetAnonymousOpenUrls(); len(urls) > 0 {
-			if !common.StartStringList(url, urls) {
+			if !utils.StartStringList(url, urls) {
 				err = fmt.Errorf("已注册用户可访问，请您先登录！")
 			}
 		}
@@ -64,12 +64,12 @@ func Authorize(auth IUserAuth, act uint16, url string) error {
 	// 3. 受限用户，优先判断黑名单，此网址在黑名单中则失败
 	if utype == usertype.LIMITED {
 		if urls := auth.GetLimitedBlackListUrls(); len(urls) > 0 { // 二选一
-			if common.StartStringList(url, urls) {
+			if utils.StartStringList(url, urls) {
 				err = fmt.Errorf("您的账号无权限访问，请联系客服！")
 				return err
 			}
 		} else if urls := auth.GetLimitedWhiteListUrls(); len(urls) > 0 { // 二选一
-			if common.StartStringList(url, urls) {
+			if utils.StartStringList(url, urls) {
 				return nil
 			}
 		}

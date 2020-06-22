@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"testing"
 
-	"gitee.com/azhai/xorm-refactor/builtin/auth"
 	"gitee.com/azhai/xorm-refactor/builtin/base"
 	"gitee.com/azhai/xorm-refactor/tests/contrib"
 	_ "gitee.com/azhai/xorm-refactor/tests/models"
 	"gitee.com/azhai/xorm-refactor/tests/models/cache"
 	db "gitee.com/azhai/xorm-refactor/tests/models/default"
+	"gitee.com/azhai/xorm-refactor/utils"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -17,7 +17,7 @@ import (
 var (
 	username = "admin"
 	password = "admin"
-	token    = auth.NewToken('T')
+	token    = utils.CreateToken([]byte("T"), 2)
 )
 
 // 写入Session
@@ -48,8 +48,7 @@ func TestSess01Login(t *testing.T) {
 	has, err := user.Load("username = ?", username)
 	assert.NoError(t, err)
 	if has && err == nil {
-		cipher := auth.Cipher()
-		ok := cipher.VerifyPassword(password, user.Password)
+		ok := utils.VerifyPassword(password, user.Password)
 		assert.True(t, ok)
 
 		sess := cache.Session(token)

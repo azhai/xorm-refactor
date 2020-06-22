@@ -3,10 +3,11 @@ package crud_test
 import (
 	"testing"
 
-	"gitee.com/azhai/xorm-refactor/builtin/auth"
+	"gitee.com/azhai/xorm-refactor/builtin/base"
 	"gitee.com/azhai/xorm-refactor/tests/contrib"
 	_ "gitee.com/azhai/xorm-refactor/tests/models"
 	db "gitee.com/azhai/xorm-refactor/tests/models/default"
+	"gitee.com/azhai/xorm-refactor/utils"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -51,9 +52,9 @@ func insertGroups(t *testing.T, data []map[string]string) map[string]db.Group {
 	var groups []db.Group
 	for _, row := range data {
 		groups = append(groups, db.Group{
-			Gid:    auth.NewSerialNo('G'),
+			Gid:    utils.NewSerialNo('G'),
 			Title:  row["title"],
-			Remark: row["remark"],
+			Remark: base.NewNullString(row["remark"]),
 		})
 	}
 	if len(groups) > 0 {
@@ -82,12 +83,11 @@ func TestMulti01InsertUserRoleGroups(t *testing.T) {
 	assert.NoError(t, err)
 	groups := insertGroups(t, allGroupData)
 
-	cipher := auth.Cipher()
 	var userRoles []db.UserRole
 	for _, row := range allUserData {
 		username := row["username"].(string)
-		row["password"] = cipher.CreatePassword(username)
-		uid := auth.NewSerialNo('U')
+		row["password"] = utils.CreatePassword(username)
+		uid := utils.NewSerialNo('U')
 		row["uid"] = uid
 
 		uroles := userRoleGroups[username]["roles"]

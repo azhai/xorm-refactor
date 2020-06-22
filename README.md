@@ -99,6 +99,7 @@ package main
 import (
 	"gitee.com/azhai/xorm-refactor/config"
 	"my-project/models/db"
+	"xorm.io/xorm/log"
 )
 
 var verbose bool // 详细输出
@@ -108,7 +109,8 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	db.Initialize(cfg, verbose)
+    logger := &log.DiscardLogger{}
+	db.Initialize(cfg, logger, verbose)
 }
 ```
 
@@ -172,6 +174,9 @@ make all
 application:
    debug: true
    plural_table: false  #表名是否使用复数
+
+logging:
+   sql_file: ""
 
 mysql: &mysql           #共用数据库配置
    driver_name: "mysql"

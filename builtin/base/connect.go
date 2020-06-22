@@ -2,6 +2,7 @@ package base
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"regexp"
 	"strings"
@@ -16,6 +17,18 @@ type FilterFunc = func(query *xorm.Session) *xorm.Session
 
 // 修改操作，用于事务
 type ModifyFunc = func(tx *xorm.Session) (int64, error)
+
+// string 与 NullString 相互转换
+func NewNullString(word string) sql.NullString {
+	return sql.NullString{String: word, Valid: word != ""}
+}
+
+func GetNullString(data sql.NullString) (word string) {
+	if data.Valid {
+		word = data.String
+	}
+	return
+}
 
 /**
  * 数据表名
