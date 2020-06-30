@@ -44,7 +44,7 @@ func TestJoin01FindUserGroups(t *testing.T) {
 		}
 
 		foreign := base.ForeignTable{
-			Join:  join.LEFT_JOIN,
+			Join:  join.LeftJoin,
 			Table: *m.PrinGroup,
 			Alias: "", Index: "gid",
 		}

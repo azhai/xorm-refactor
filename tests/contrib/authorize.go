@@ -29,21 +29,21 @@ type UserAuth struct {
 // 用户分类，无法区分内部用户和普通用户
 func (a UserAuth) GetUserType() (utype usertype.UserType, err error) {
 	if a.User == nil || a.User.Id == 0 {
-		utype = usertype.ANONYMOUS
+		utype = usertype.Anonymous
 		return
 	}
 	if !a.User.DeletedAt.IsZero() {
-		utype = usertype.FORBIDDEN
+		utype = usertype.Forbidden
 		return
 	}
 	var roles []string
 	roles, err = a.GetUserRoles()
 	if utils.InStringList(ROLE_NAME_LIMITED, roles) {
-		utype = usertype.LIMITED
+		utype = usertype.Limited
 	} else if utils.InStringList(ROLE_NAME_SUPER, roles) {
-		utype = usertype.SUPER
+		utype = usertype.Super
 	} else {
-		utype = usertype.REGULAR
+		utype = usertype.Regular
 	}
 	return
 }

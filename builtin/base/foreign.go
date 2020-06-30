@@ -39,7 +39,7 @@ func (f ForeignTable) AliasName() string {
 	return f.Table.TableName()
 }
 
-// 表名和别名，通常用于 FROM 或 JOIN 之后
+// 表名和别名，通常用于 FROM 或 Join 之后
 func (f ForeignTable) TableName() string {
 	table := f.Table.TableName()
 	if f.Alias != "" {
@@ -104,7 +104,7 @@ func (q *LeftJoinQuery) AddLeftJoin(foreign ITableName, pkey, fkey, alias string
 		q.ForeignKeys = append(q.ForeignKeys, fkey)
 	}
 	q.Foreigns[fkey] = ForeignTable{
-		Join:  join.LEFT_JOIN,
+		Join:  join.LeftJoin,
 		Table: foreign,
 		Alias: alias,
 		Index: pkey,
@@ -144,7 +144,7 @@ func (q *LeftJoinQuery) GetQuery() *xorm.Session {
 	return query.Select(buf.String())
 }
 
-// 计数，由于左联接数量只跟主表有关，这里不去 JOIN
+// 计数，由于左联接数量只跟主表有关，这里不去 Join
 func (q *LeftJoinQuery) Count(bean ...interface{}) (int64, error) {
 	query := q.Session
 	for _, filter := range q.filters {
