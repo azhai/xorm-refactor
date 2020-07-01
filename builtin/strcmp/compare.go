@@ -1,44 +1,35 @@
-package utils
+package strcmp
 
 import (
 	"sort"
 	"strings"
-)
 
-// 字符串比较方式
-const (
-	CMP_STRING_OMIT             = iota // 不比较
-	CMP_STRING_CONTAINS                // 包含
-	CMP_STRING_STARTSWITH              // 打头
-	CMP_STRING_ENDSWITH                // 结尾
-	CMP_STRING_CASE_INSENSITIVE        // 不分大小写
-	CMP_STRING_IGNORE_SPACES           // 忽略空格
-	CMP_STRING_EQUAL                   // 相等
+	"gitee.com/azhai/xorm-refactor/utils"
 )
 
 // 比较是否相符
-func MatchString(a, b string, cmp int) bool {
+func MatchString(a, b string, cmp StrCmp) bool {
 	switch cmp {
-	case CMP_STRING_OMIT:
+	case Omit:
 		return true
-	case CMP_STRING_CONTAINS:
+	case Contains:
 		return strings.Contains(a, b)
-	case CMP_STRING_STARTSWITH:
+	case StartsWith:
 		return strings.HasPrefix(a, b)
-	case CMP_STRING_ENDSWITH:
+	case EndsWith:
 		return strings.HasSuffix(a, b)
-	case CMP_STRING_CASE_INSENSITIVE:
+	case CaseInsensitive:
 		return strings.EqualFold(a, b)
-	case CMP_STRING_IGNORE_SPACES:
-		a, b = RemoveSpaces(a), RemoveSpaces(b)
+	case IgnoreSpaces:
+		a, b = utils.RemoveSpaces(a), utils.RemoveSpaces(b)
 		return strings.EqualFold(a, b)
-	default: // 包括 CMP_STRING_EQUAL
+	default: // 包括 strcmp.EQUAL
 		return strings.Compare(a, b) == 0
 	}
 }
 
-// 是否在字符串列表中，主要适用于 CMP_STRING_CONTAINS 和 CMP_STRING_ENDSWITH
-func MatchStringList(x string, lst []string, cmp int) bool {
+// 是否在字符串列表中，主要适用于 strcmp.Contains 和 strcmp.EndsWith
+func MatchStringList(x string, lst []string, cmp StrCmp) bool {
 	for _, y := range lst {
 		if MatchString(x, y, cmp) {
 			return true
@@ -47,8 +38,8 @@ func MatchStringList(x string, lst []string, cmp int) bool {
 	return false
 }
 
-// 是否在字符串列表中，仅适用于 CMP_STRING_EQUAL 和 CMP_STRING_STARTSWITH
-func SearchStringList(x string, lst []string, cmp int) bool {
+// 是否在字符串列表中，仅适用于 strcmp.Equal 和 strcmp.StartsWith
+func SearchStringList(x string, lst []string, cmp StrCmp) bool {
 	if !sort.StringsAreSorted(lst) {
 		sort.Strings(lst)
 	}
@@ -59,24 +50,24 @@ func SearchStringList(x string, lst []string, cmp int) bool {
 }
 
 // 是否在字符串列表中
-func CompareStringList(x string, lst []string, cmp int) bool {
+func CompareStringList(x string, lst []string, cmp StrCmp) bool {
 	if size := len(lst); size == 0 {
 		return false
 	}
 	switch cmp {
-	case CMP_STRING_OMIT:
+	case Omit:
 		return true
-	case CMP_STRING_CONTAINS, CMP_STRING_ENDSWITH:
+	case Contains, EndsWith:
 		return MatchStringList(x, lst, cmp)
-	case CMP_STRING_CASE_INSENSITIVE:
+	case CaseInsensitive:
 		x = strings.ToLower(x)
 		for i, y := range lst {
 			lst[i] = strings.ToLower(y)
 		}
-	case CMP_STRING_IGNORE_SPACES:
-		x = RemoveSpaces(x)
+	case IgnoreSpaces:
+		x = utils.RemoveSpaces(x)
 		for i, y := range lst {
-			lst[i] = RemoveSpaces(y)
+			lst[i] = utils.RemoveSpaces(y)
 		}
 	}
 	return SearchStringList(x, lst, cmp)
@@ -84,17 +75,17 @@ func CompareStringList(x string, lst []string, cmp int) bool {
 
 // 是否在字符串列表中
 func InStringList(x string, lst []string) bool {
-	return len(lst) > 0 && SearchStringList(x, lst, CMP_STRING_EQUAL)
+	return len(lst) > 0 && SearchStringList(x, lst, Equal)
 }
 
 // 是否在字符串列表中，比较方式是有任何一个开头符合
 func StartStringList(x string, lst []string) bool {
-	return len(lst) > 0 && SearchStringList(x, lst, CMP_STRING_STARTSWITH)
+	return len(lst) > 0 && SearchStringList(x, lst, StartsWith)
 }
 
 // 是否在字符串列表中，比较方式是有任何一个开头符合
 func EndStringList(x string, lst []string) bool {
-	return len(lst) > 0 && MatchStringList(x, lst, CMP_STRING_ENDSWITH)
+	return len(lst) > 0 && MatchStringList(x, lst, EndsWith)
 }
 
 // 比较两个列表的长度
@@ -109,7 +100,7 @@ func CompareSubsetLength(lst1, lst2 []string, strict bool) bool {
 }
 
 // lst1 是否 lst2 的（真）子集
-func CompareSubsetList(lst1, lst2 []string, cmp int, strict bool) bool {
+func CompareSubsetList(lst1, lst2 []string, cmp StrCmp, strict bool) bool {
 	if !CompareSubsetLength(lst1, lst2, strict) {
 		return false
 	}

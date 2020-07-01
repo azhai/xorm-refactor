@@ -3,12 +3,13 @@ package auth
 import (
 	"fmt"
 
+	"gitee.com/azhai/xorm-refactor/builtin/strcmp"
+	"gitee.com/azhai/xorm-refactor/builtin/userpermit"
 	"gitee.com/azhai/xorm-refactor/builtin/usertype"
-	"gitee.com/azhai/xorm-refactor/utils"
 )
 
 type IPermission interface {
-	CheckPerm(act uint16, url string) bool
+	CheckPermit(access int, url string) bool
 }
 
 type IUserAuth interface {
@@ -38,7 +39,7 @@ type IUserAuth interface {
 }
 
 // 用户鉴权
-func Authorize(auth IUserAuth, act uint16, url string) error {
+func Authorize(auth IUserAuth, access userpermit.UserPermit, url string) error {
 	var err error
 
 	// 1. 静态资源，直接放行
@@ -54,7 +55,7 @@ func Authorize(auth IUserAuth, act uint16, url string) error {
 	// 2. 匿名用户，如果是公开资源放行，否则失败
 	if utype == usertype.Anonymous || utype == usertype.Forbidden {
 		if urls := auth.GetAnonymousOpenUrls(); len(urls) > 0 {
-			if !utils.StartStringList(url, urls) {
+			if !strcmp.StartStringList(url, urls) {
 				err = fmt.Errorf("已注册用户可访问，请您先登录！")
 			}
 		}
@@ -64,12 +65,12 @@ func Authorize(auth IUserAuth, act uint16, url string) error {
 	// 3. 受限用户，优先判断黑名单，此网址在黑名单中则失败
 	if utype == usertype.Limited {
 		if urls := auth.GetLimitedBlackListUrls(); len(urls) > 0 { // 二选一
-			if utils.StartStringList(url, urls) {
+			if strcmp.StartStringList(url, urls) {
 				err = fmt.Errorf("您的账号无权限访问，请联系客服！")
 				return err
 			}
 		} else if urls := auth.GetLimitedWhiteListUrls(); len(urls) > 0 { // 二选一
-			if utils.StartStringList(url, urls) {
+			if strcmp.StartStringList(url, urls) {
 				return nil
 			}
 		}
@@ -84,7 +85,7 @@ func Authorize(auth IUserAuth, act uint16, url string) error {
 	if utype == usertype.Super {
 		if perms := auth.GetSuperPermissions(roles); len(perms) > 0 {
 			for _, perm := range perms {
-				if perm.CheckPerm(act, url) {
+				if perm.CheckPermit(int(access), url) {
 					return nil
 				}
 			}
@@ -94,7 +95,7 @@ func Authorize(auth IUserAuth, act uint16, url string) error {
 	// 5. 正常用户，如果有此权限则放行，内容最多，放在最后
 	if perms := auth.GetRegularPermissions(roles); len(perms) > 0 {
 		for _, perm := range perms {
-			if perm.CheckPerm(act, url) {
+			if perm.CheckPermit(int(access), url) {
 				return nil
 			}
 		}

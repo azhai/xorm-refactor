@@ -1,7 +1,9 @@
 package utils
 
 import (
+	"database/sql"
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -58,4 +60,32 @@ func ReplaceWith(s string, subs map[string]string) string {
 	}
 	replacer := strings.NewReplacer(marks...)
 	return replacer.Replace(s)
+}
+
+// string 与 NullString 相互转换
+func NewNullString(word string) sql.NullString {
+	return sql.NullString{String: word, Valid: word != ""}
+}
+
+func GetNullString(data sql.NullString) (word string) {
+	if data.Valid {
+		word = data.String
+	}
+	return
+}
+
+// 盲转义，认为字段名以小写字母开头
+func QuoteColumns(cols []string, sep string, quote func(string) string) string {
+	re := regexp.MustCompile("([a-z][a-zA-Z0-9_]+)")
+	repl, origin := quote("$1"), strings.Join(cols, sep)
+	result := re.ReplaceAllString(origin, repl)
+	if pad := (len(repl) - len("$1")) / 2; pad > 0 {
+		left, right := repl[:pad], repl[len(repl)-pad:]
+		oldnew := []string{
+			left + left, left, right + right, right,
+			"'" + left, "'", left + "'", "'",
+		}
+		result = strings.NewReplacer(oldnew...).Replace(result)
+	}
+	return result
 }

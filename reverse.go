@@ -12,8 +12,8 @@ import (
 	"strings"
 	"text/template"
 
-	"gitee.com/azhai/xorm-refactor/config"
 	"gitee.com/azhai/xorm-refactor/rewrite"
+	"gitee.com/azhai/xorm-refactor/setting"
 	"github.com/azhai/gozzo-utils/filesystem"
 	"github.com/gobwas/glob"
 	"github.com/grsmv/inflect"
@@ -68,7 +68,7 @@ func GetCreatedColumn(table *schemas.Table) string {
 	return ""
 }
 
-func GetTableSchemas(source *config.ReverseSource, target *config.ReverseTarget, verbose bool) []*schemas.Table {
+func GetTableSchemas(source *setting.ReverseSource, target *setting.ReverseTarget, verbose bool) []*schemas.Table {
 	var tableSchemas []*schemas.Table
 	engine, err := source.Connect(verbose)
 	if err != nil {
@@ -131,7 +131,7 @@ func convertMapper(mapname string) names.Mapper {
 	}
 }
 
-func Reverse(target *config.ReverseTarget, source *config.DataSource, verbose bool) error {
+func Reverse(target *setting.ReverseTarget, source *setting.DataSource, verbose bool) error {
 	formatter := formatters[target.Formatter]
 	lang := GetLanguage(target.Language)
 	if lang != nil {
@@ -171,7 +171,7 @@ func Reverse(target *config.ReverseTarget, source *config.DataSource, verbose bo
 	if err := tmpl.Execute(buf, data); err != nil {
 		return err
 	}
-	fileName := target.GetOutFileName(config.CONN_FILE_NAME)
+	fileName := target.GetOutFileName(setting.CONN_FILE_NAME)
 	_, err := formatter(fileName, buf.Bytes())
 
 	if target.ApplyMixins {
@@ -183,7 +183,7 @@ func Reverse(target *config.ReverseTarget, source *config.DataSource, verbose bo
 	return err
 }
 
-func RunReverse(target *config.ReverseTarget, tableSchemas []*schemas.Table) error {
+func RunReverse(target *setting.ReverseTarget, tableSchemas []*schemas.Table) error {
 	// load configuration from language
 	lang := GetLanguage(target.Language)
 	funcs := newFuncs()
@@ -264,7 +264,7 @@ func RunReverse(target *config.ReverseTarget, tableSchemas []*schemas.Table) err
 		if err = tmpl.Execute(buf, data); err != nil {
 			return err
 		}
-		fileName := target.GetOutFileName(config.SINGLE_FILE_NAME)
+		fileName := target.GetOutFileName(setting.SINGLE_FILE_NAME)
 		if _, err = formatter(fileName, buf.Bytes()); err != nil {
 			return err
 		}
@@ -274,7 +274,7 @@ func RunReverse(target *config.ReverseTarget, tableSchemas []*schemas.Table) err
 			if err = tmplQuery.Execute(buf, data); err != nil {
 				return err
 			}
-			fileName := target.GetOutFileName(config.QUERY_FILE_NAME)
+			fileName := target.GetOutFileName(setting.QUERY_FILE_NAME)
 			if _, err = formatter(fileName, buf.Bytes()); err != nil {
 				return err
 			}
@@ -307,16 +307,16 @@ func RunReverse(target *config.ReverseTarget, tableSchemas []*schemas.Table) err
 	return nil
 }
 
-func ExecReverseSettings(cfg config.IReverseSettings, verbose bool, names ...string) error {
+func ExecReverseSettings(cfg setting.IReverseConfig, verbose bool, names ...string) error {
 	conns := cfg.GetConnConfigMap(names...)
 	targets := cfg.GetReverseTargets()
 	if len(targets) == 0 {
 		return nil
 	}
-	var target config.ReverseTarget
+	var target setting.ReverseTarget
 	imports := make(map[string]string)
 	for key, conf := range conns {
-		d := config.NewDataSource(conf, key)
+		d := setting.NewDataSource(conf, key)
 		if d.ReverseSource == nil {
 			continue
 		}
@@ -331,7 +331,7 @@ func ExecReverseSettings(cfg config.IReverseSettings, verbose bool, names ...str
 	return GenModelInitFile(target, imports)
 }
 
-func GenModelInitFile(target config.ReverseTarget, imports map[string]string) error {
+func GenModelInitFile(target setting.ReverseTarget, imports map[string]string) error {
 	var tmpl *template.Template
 	if target.InitTemplatePath != "" {
 		it, err := ioutil.ReadFile(target.InitTemplatePath)
@@ -350,12 +350,12 @@ func GenModelInitFile(target config.ReverseTarget, imports map[string]string) er
 	if err := tmpl.Execute(buf, data); err != nil {
 		return err
 	}
-	fileName := target.GetParentOutFileName(config.INIT_FILE_NAME, 1)
+	fileName := target.GetParentOutFileName(setting.INIT_FILE_NAME, 1)
 	_, err := rewrite.CleanImportsWriteGolangFile(fileName, buf.Bytes())
 	return err
 }
 
-func ExecApplyMixins(target *config.ReverseTarget) error {
+func ExecApplyMixins(target *setting.ReverseTarget) error {
 	if target.MixinDirPath != "" {
 		files, _ := filesystem.FindFiles(target.MixinDirPath, ".go")
 		for fileName := range files {

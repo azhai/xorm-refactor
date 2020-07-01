@@ -3,23 +3,21 @@ package crud_test
 import (
 	"testing"
 
-	"gitee.com/azhai/xorm-refactor/utils"
-
-	"gitee.com/azhai/xorm-refactor/builtin/base"
-	"gitee.com/azhai/xorm-refactor/builtin/join"
+	"gitee.com/azhai/xorm-refactor/builtin"
+	"gitee.com/azhai/xorm-refactor/builtin/sqljoin"
 	"gitee.com/azhai/xorm-refactor/tests/contrib"
 	_ "gitee.com/azhai/xorm-refactor/tests/models"
 	db "gitee.com/azhai/xorm-refactor/tests/models/default"
-
+	"gitee.com/azhai/xorm-refactor/utils"
 	"github.com/k0kubun/pp"
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm"
 )
 
-func getFilter(engine *xorm.Engine, table string) base.FilterFunc {
+func getFilter(engine *xorm.Engine, table string) builtin.FilterFunc {
 	return func(query *xorm.Session) *xorm.Session {
-		cond := base.Qprintf(engine, "%s.%s IS NOT NULL", table, "prin_gid")
-		sort := base.Qprintf(engine, "%s.%s ASC", table, "id")
+		cond := builtin.Qprintf(engine, "%s.%s IS NOT NULL", table, "prin_gid")
+		sort := builtin.Qprintf(engine, "%s.%s ASC", table, "id")
 		return query.Where(cond).OrderBy(sort)
 	}
 }
@@ -43,26 +41,26 @@ func TestJoin01FindUserGroups(t *testing.T) {
 			pp.Println(cols)
 		}
 
-		foreign := base.ForeignTable{
-			Join:  join.LeftJoin,
+		foreign := builtin.ForeignTable{
+			Join:  sqljoin.LeftJoin,
 			Table: *m.PrinGroup,
 			Alias: "", Index: "gid",
 		}
 		foreign.Alias = "P"
-		query, cols = base.JoinQuery(engine, query, table, "prin_gid", foreign)
+		query, cols = builtin.JoinQuery(engine, query, table, "prin_gid", foreign)
 		query = query.Cols(cols...)
 		if testing.Verbose() {
 			pp.Println(cols)
 		}
 		foreign.Alias = "V"
-		query, cols = base.JoinQuery(engine, query, table, "vice_gid", foreign)
+		query, cols = builtin.JoinQuery(engine, query, table, "vice_gid", foreign)
 		query = query.Cols(cols...)
 		if testing.Verbose() {
 			pp.Println(cols)
 		}
 
 		pageno, pagesize := 1, 20
-		base.Paginate(query, pageno, pagesize).Find(&objs)
+		builtin.Paginate(query, pageno, pagesize).Find(&objs)
 		if testing.Verbose() {
 			pp.Println(objs)
 		}
@@ -75,7 +73,7 @@ func TestJoin02LeftJoinQuery(t *testing.T) {
 	filter := getFilter(engine, table)
 
 	group := contrib.GroupSummary{}
-	query := base.NewLeftJoinQuery(engine, native)
+	query := builtin.NewLeftJoinQuery(engine, native)
 	query.AddLeftJoin(group, "gid", "prin_gid", "P")
 	query.AddLeftJoin(group, "gid", "vice_gid", "V")
 

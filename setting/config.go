@@ -1,10 +1,10 @@
-package config
+package setting
 
 import (
 	"bytes"
 	"os"
 
-	"gitee.com/azhai/xorm-refactor/config/dialect"
+	"gitee.com/azhai/xorm-refactor/setting/dialect"
 	"gopkg.in/yaml.v3"
 )
 
@@ -13,14 +13,14 @@ const (
 	DEFAULT_FILE_MODE = 0o644
 )
 
-type IConnectSettings interface {
+type IConnectConfig interface {
 	GetConnConfigMap(keys ...string) map[string]ConnConfig
 	GetConnConfig(key string) (ConnConfig, bool)
 }
 
-type IReverseSettings interface {
+type IReverseConfig interface {
 	GetReverseTargets() []ReverseTarget
-	IConnectSettings
+	IConnectConfig
 }
 
 type AppConfig struct {
@@ -92,15 +92,15 @@ func (ds DataSource) GetDriverName() string {
 	return ""
 }
 
-type Settings struct {
+type Configure struct {
 	Application    AppConfig             `json:"application" yaml:"application"`
 	Logging        LogConfig             `json:"logging" yaml:"logging"`
 	Connections    map[string]ConnConfig `json:"connections" yaml:"connections"`
 	ReverseTargets []ReverseTarget       `json:"reverse_targets" yaml:"reverse_targets"`
 }
 
-func ReadSettings(fileName string) (*Settings, error) {
-	cfg := new(Settings)
+func ReadSettings(fileName string) (*Configure, error) {
+	cfg := new(Configure)
 	err := ReadSettingsFrom(fileName, &cfg)
 	return cfg, err
 }
@@ -130,11 +130,11 @@ func Settings2Bytes(cfg interface{}) []byte {
 	return nil
 }
 
-func (cfg Settings) GetReverseTargets() []ReverseTarget {
+func (cfg Configure) GetReverseTargets() []ReverseTarget {
 	return cfg.ReverseTargets
 }
 
-func (cfg Settings) GetConnConfigMap(keys ...string) map[string]ConnConfig {
+func (cfg Configure) GetConnConfigMap(keys ...string) map[string]ConnConfig {
 	if len(keys) == 0 {
 		return cfg.Connections
 	}
@@ -147,7 +147,7 @@ func (cfg Settings) GetConnConfigMap(keys ...string) map[string]ConnConfig {
 	return result
 }
 
-func (cfg Settings) GetConnConfig(key string) (ConnConfig, bool) {
+func (cfg Configure) GetConnConfig(key string) (ConnConfig, bool) {
 	if c, ok := cfg.Connections[key]; ok {
 		return c, true
 	}

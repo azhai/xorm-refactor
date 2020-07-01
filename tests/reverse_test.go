@@ -8,10 +8,11 @@ import (
 	"testing"
 	"time"
 
+	"gitee.com/azhai/xorm-refactor/builtin/strcmp"
+
 	"gitee.com/azhai/xorm-refactor"
 	"gitee.com/azhai/xorm-refactor/cmd"
-	"gitee.com/azhai/xorm-refactor/config"
-	"gitee.com/azhai/xorm-refactor/utils"
+	"gitee.com/azhai/xorm-refactor/setting"
 	"github.com/azhai/gozzo-utils/filesystem"
 	"github.com/k0kubun/pp"
 	"github.com/stretchr/testify/assert"
@@ -53,13 +54,13 @@ func writeLockTime(fp *os.File, label string) {
 	fp.WriteString(fmt.Sprintf("%s %s\n", label, now))
 }
 
-func createTables(settings config.IReverseSettings) (err error) {
+func createTables(settings setting.IReverseConfig) (err error) {
 	c, ok := settings.GetConnConfig("default")
 	if !ok {
 		err = fmt.Errorf("the connection is not found")
 		return
 	}
-	r, _ := config.NewReverseSource(c)
+	r, _ := setting.NewReverseSource(c)
 	var db *xorm.Engine
 	if db, err = r.Connect(false); err != nil {
 		return
@@ -82,7 +83,7 @@ func createTables(settings config.IReverseSettings) (err error) {
 // 如果要无视 lock 文件，运行 go test -v --args force
 func Test01CreateTables(t *testing.T) {
 	if lockFile != "" { // 使用 lock 文件，防止删除已有数据表
-		force := utils.InStringList("force", os.Args)
+		force := strcmp.InStringList("force", os.Args)
 		fp, err := checkLockFile(force)
 		if err != nil {
 			fmt.Println(err.Error())

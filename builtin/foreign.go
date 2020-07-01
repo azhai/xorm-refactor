@@ -1,10 +1,10 @@
-package base
+package builtin
 
 import (
 	"bytes"
 	"fmt"
 
-	"gitee.com/azhai/xorm-refactor/builtin/join"
+	"gitee.com/azhai/xorm-refactor/builtin/sqljoin"
 	"gitee.com/azhai/xorm-refactor/utils"
 	"xorm.io/xorm"
 )
@@ -19,13 +19,13 @@ func JoinQuery(engine *xorm.Engine, query *xorm.Session,
 	}
 	var cols []string
 	cols = utils.GetColumns(foreign.Table, frgAlias, cols)
-	query = query.Join(string(foreign.Join), frgTable, cond)
+	query = query.Join(foreign.Join.Subject(), frgTable, cond)
 	return query, cols
 }
 
 // 关联表
 type ForeignTable struct {
-	Join  join.JoinOp
+	Join  sqljoin.SqlJoin
 	Table ITableName
 	Alias string
 	Index string
@@ -104,7 +104,7 @@ func (q *LeftJoinQuery) AddLeftJoin(foreign ITableName, pkey, fkey, alias string
 		q.ForeignKeys = append(q.ForeignKeys, fkey)
 	}
 	q.Foreigns[fkey] = ForeignTable{
-		Join:  join.LeftJoin,
+		Join:  sqljoin.LeftJoin,
 		Table: foreign,
 		Alias: alias,
 		Index: pkey,
@@ -139,7 +139,7 @@ func (q *LeftJoinQuery) GetQuery() *xorm.Session {
 		foreign := q.Foreigns[fkey]
 		query, cols = JoinQuery(q.engine, query, q.nativeTable, fkey, foreign)
 		buf.WriteString(", ")
-		buf.WriteString(BlindlyQuote(q.engine, ", ", cols...))
+		buf.WriteString(utils.QuoteColumns(cols, ", ", q.engine.Quote))
 	}
 	return query.Select(buf.String())
 }

@@ -1,10 +1,8 @@
-package base
+package builtin
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
@@ -17,18 +15,6 @@ type FilterFunc = func(query *xorm.Session) *xorm.Session
 
 // 修改操作，用于事务
 type ModifyFunc = func(tx *xorm.Session) (int64, error)
-
-// string 与 NullString 相互转换
-func NewNullString(word string) sql.NullString {
-	return sql.NullString{String: word, Valid: word != ""}
-}
-
-func GetNullString(data sql.NullString) (word string) {
-	if data.Valid {
-		word = data.String
-	}
-	return
-}
 
 /**
  * 数据表名
@@ -52,23 +38,6 @@ func Qprintf(engine *xorm.Engine, format string, args ...interface{}) string {
 		}
 	}
 	return fmt.Sprintf(format, args...)
-}
-
-// 盲转义，认定字段名以小写字母开头
-func BlindlyQuote(engine *xorm.Engine, sep string, words ...string) string {
-	repl := engine.Quote("$1")
-	origin := strings.Join(words, sep)
-	re := regexp.MustCompile("([a-z][a-zA-Z0-9_]+)")
-	result := re.ReplaceAllString(origin, repl)
-	if pad := (len(repl) - len("$1")) / 2; pad > 0 {
-		left, right := repl[:pad], repl[len(repl)-pad:]
-		oldnew := []string{
-			left + left, left, right + right, right,
-			"'" + left, "'", left + "'", "'",
-		}
-		result = strings.NewReplacer(oldnew...).Replace(result)
-	}
-	return result
 }
 
 // 找出符合前缀的表名

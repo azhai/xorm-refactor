@@ -6,15 +6,16 @@ import (
 	"strings"
 	"time"
 
-	"gitee.com/azhai/xorm-refactor/builtin/access"
-	"gitee.com/azhai/xorm-refactor/builtin/base"
+	"gitee.com/azhai/xorm-refactor/builtin"
+	"gitee.com/azhai/xorm-refactor/builtin/userpermit"
 	db "gitee.com/azhai/xorm-refactor/tests/models/default"
+	"gitee.com/azhai/xorm-refactor/utils"
 )
 
 // 清空表
 func TruncTable(tableName string) error {
 	engine := db.Engine()
-	sql := base.Qprintf(engine, "TRUNCATE TABLE %s", tableName)
+	sql := builtin.Qprintf(engine, "TRUNCATE TABLE %s", tableName)
 	_, err := engine.Exec(sql)
 	return err
 }
@@ -48,7 +49,7 @@ func GetUserInfo(user *db.User) map[string]interface{} {
 	if user.Avatar != "" {
 		info["avatar"] = user.Avatar
 	}
-	if intro := base.GetNullString(user.Introduction); intro != "" {
+	if intro := utils.GetNullString(user.Introduction); intro != "" {
 		info["introduction"] = intro
 	}
 	return info
@@ -71,12 +72,12 @@ func NewMenu(path, title, icon string) *db.Menu {
 
 // 添加子菜单
 func AddMenuToParent(menu, parent *db.Menu) (err error) {
-	var parentNode *base.NestedMixin
+	var parentNode *builtin.NestedMixin
 	if parent != nil {
 		parentNode = parent.NestedMixin
 	}
 	if menu.NestedMixin == nil {
-		menu.NestedMixin = new(base.NestedMixin)
+		menu.NestedMixin = new(builtin.NestedMixin)
 	}
 	query, table := db.Table(), menu.TableName()
 	err = menu.NestedMixin.AddToParent(parentNode, query, table)
@@ -87,12 +88,12 @@ func AddMenuToParent(menu, parent *db.Menu) (err error) {
 }
 
 // 添加权限
-func AddAccess(role, res string, perm uint16, args ...string) (acc *db.Access, err error) {
+func AddAccess(role, res string, perm userpermit.UserPermit, args ...string) (acc *db.Access, err error) {
 	acc = &db.Access{
 		RoleName: role, PermCode: int(perm),
 		ResourceType: res, GrantedAt: time.Now(),
 	}
-	_, names := access.ParsePermNames(uint16(acc.PermCode))
+	_, names := userpermit.DividePermit(acc.PermCode)
 	acc.Actions = strings.Join(names, ",")
 	if len(args) > 0 {
 		resArgs := strings.Join(args, ",")

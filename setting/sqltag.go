@@ -1,12 +1,10 @@
-package rewrite
+package setting
 
 import (
 	"fmt"
 	"reflect"
 	"strings"
 	"sync"
-
-	"gitee.com/azhai/xorm-refactor/config"
 )
 
 // StructTag named sql or xorm
@@ -23,7 +21,7 @@ func NewSqlTag() *SqlTag {
 
 func (st *SqlTag) ParseTag(tag reflect.StructTag) {
 	st.StructTag, st.changed = tag, true
-	str := fmt.Sprintf("%s;%s", tag.Get("sql"), tag.Get(config.XORM_TAG_NAME))
+	str := fmt.Sprintf("%s;%s", tag.Get("sql"), tag.Get(XORM_TAG_NAME))
 	pieces := strings.Split(str, ";")
 	for _, value := range pieces {
 		if strings.TrimSpace(value) == "" {

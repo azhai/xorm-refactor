@@ -6,7 +6,7 @@ import (
 
 	"gitee.com/azhai/xorm-refactor/utils"
 
-	"gitee.com/azhai/xorm-refactor/builtin/base"
+	"gitee.com/azhai/xorm-refactor/builtin"
 	"gitee.com/azhai/xorm-refactor/tests/contrib"
 	_ "gitee.com/azhai/xorm-refactor/tests/models"
 	"gitee.com/azhai/xorm-refactor/tests/models/cron"
@@ -59,13 +59,13 @@ func TestCron02AddRecords(t *testing.T) {
 		start = start.Add(time.Hour * 24 * 2)
 	}
 
-	var objs []base.IResetTable
+	var objs []builtin.IResetTable
 	obj := contrib.CronTimerCluster{}
-	obj.TaskId, obj.IsActive = 1, 1
+	obj.TaskId, obj.IsActive = 1, true
 	for start.Unix() <= end.Unix() {
 		ymd := start.Format("2006-01-02")
 		obj.RunDate = start
-		obj.ClusterMixin = base.NewClusterMonthly(start)
+		obj.ClusterMixin = builtin.NewClusterMonthly(start)
 		if start.Weekday() == 1 {
 			obj.RunClock = "09:00:00"
 			start = start.Add(time.Hour * 24 * 4)
@@ -78,7 +78,7 @@ func TestCron02AddRecords(t *testing.T) {
 		}
 		objs = append(objs, obj)
 	}
-	_, err := base.ClusterInsertMulti(cron.Engine(), objs, true, true)
+	_, err := builtin.ClusterInsertMulti(cron.Engine(), objs, true, true)
 	assert.NoError(t, err)
 }
 
@@ -88,7 +88,7 @@ func TestCron03FridayRecords(t *testing.T) {
 		return query.Where("run_clock = ?", "16:30:00")
 	}
 	m := contrib.NewCronTimerCluster()
-	query := base.NewClusterQuery(cron.Engine(), m.ClusterMixin)
+	query := builtin.NewClusterQuery(cron.Engine(), m.ClusterMixin)
 	query.AddFilter(filter).OrderBy("run_date DESC")
 	total, err := query.ClusterCount()
 	pp.Println("total:", total)

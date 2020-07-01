@@ -6,7 +6,6 @@ import (
 	"gitee.com/azhai/xorm-refactor/tests/contrib"
 	_ "gitee.com/azhai/xorm-refactor/tests/models"
 	"gitee.com/azhai/xorm-refactor/tests/models/default"
-
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm"
 )

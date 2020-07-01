@@ -49,17 +49,17 @@ package db
 // Filename is models.go
 
 import (
-	"gitee.com/azhai/xorm-refactor/builtin/base"
+	"gitee.com/azhai/xorm-refactor/builtin"
 )
 
 type Menu struct {
 	Id                int `json:"id" xorm:"notnull pk autoincr INT(10)"`
-	*base.NestedMixin `json:",inline" xorm:"extends"`
+	*builtin.NestedMixin `json:",inline" xorm:"extends"`
 	Path              string `json:"path" xorm:"notnull default '' comment('路径') index VARCHAR(100)"`
 	Title             string `json:"title" xorm:"notnull default '' comment('名称') VARCHAR(50)"`
 	Icon              string `json:"icon" xorm:"comment('图标') VARCHAR(30)"`
 	Remark            string `json:"remark" xorm:"comment('说明备注') TEXT"`
-	*base.TimeMixin   `json:",inline" xorm:"extends"`
+	*builtin.TimeMixin   `json:",inline" xorm:"extends"`
 }
 ```
 
@@ -97,7 +97,7 @@ init.go 中含有 Initialize() 方法，通过下面的方法，在程序入口 
 package main
 
 import (
-	"gitee.com/azhai/xorm-refactor/config"
+	"gitee.com/azhai/xorm-refactor/setting"
 	"my-project/models/db"
 	"xorm.io/xorm/log"
 )
@@ -105,7 +105,7 @@ import (
 var verbose bool // 详细输出
 
 func init() {
-	cfg, err := config.ReadSettings("settings.yml")
+	cfg, err := setting.ReadSettings("settings.yml")
 	if err != nil {
 		panic(err)
 	}

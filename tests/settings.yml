@@ -10,8 +10,8 @@ mysql: &mysql  #共用数据库配置
    params:
       host: "127.0.0.1"
       port: 3306
-      username: "root"
-      password: ""
+      username: "dba"
+      password: "pass"
       database: "test"
       options: { charset: "utf8" }
 

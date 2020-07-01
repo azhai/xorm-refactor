@@ -3,7 +3,7 @@ module gitee.com/azhai/xorm-refactor
 go 1.14
 
 require (
-	github.com/alvaroloes/enumer v1.1.2 // indirect
+	gitea.com/azhai/refactor v1.0.1
 	github.com/azhai/gozzo-utils v0.4.3
 	github.com/denisenkom/go-mssqldb v0.0.0-20200620013148-b91950f658ec
 	github.com/go-sql-driver/mysql v1.5.0

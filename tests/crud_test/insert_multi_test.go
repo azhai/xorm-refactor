@@ -3,12 +3,10 @@ package crud_test
 import (
 	"testing"
 
-	"gitee.com/azhai/xorm-refactor/builtin/base"
 	"gitee.com/azhai/xorm-refactor/tests/contrib"
 	_ "gitee.com/azhai/xorm-refactor/tests/models"
 	db "gitee.com/azhai/xorm-refactor/tests/models/default"
 	"gitee.com/azhai/xorm-refactor/utils"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -54,7 +52,7 @@ func insertGroups(t *testing.T, data []map[string]string) map[string]db.Group {
 		groups = append(groups, db.Group{
 			Gid:    utils.NewSerialNo('G'),
 			Title:  row["title"],
-			Remark: base.NewNullString(row["remark"]),
+			Remark: utils.NewNullString(row["remark"]),
 		})
 	}
 	if len(groups) > 0 {

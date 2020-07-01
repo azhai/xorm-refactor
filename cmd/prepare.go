@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"gitee.com/azhai/xorm-refactor/config"
+	"gitee.com/azhai/xorm-refactor/setting"
 	"github.com/azhai/gozzo-utils/filesystem"
 )
 
@@ -12,7 +12,7 @@ const (
 )
 
 var (
-	settings *config.Settings
+	settings *setting.Configure
 	verbose  bool // 详细输出
 )
 
@@ -30,13 +30,13 @@ func FindFirstFile(fileNames []string, minSize int64) string {
 	return ""
 }
 
-func Prepare(configFiles []string) (*config.Settings, error) {
+func Prepare(configFiles []string) (*setting.Configure, error) {
 	fileName := FindFirstFile(configFiles, 0)
 	if fileName == "" {
 		err := fmt.Errorf("need reverse file")
 		return nil, err
 	}
-	settings, err := config.ReadSettings(fileName)
+	settings, err := setting.ReadSettings(fileName)
 	if settings != nil {
 		verbose = settings.Application.Debug
 	} else if err == nil {

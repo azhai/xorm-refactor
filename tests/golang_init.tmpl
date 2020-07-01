@@ -3,7 +3,7 @@ package models
 {{$initns := .Target.InitNameSpace -}}
 import (
 	"gitee.com/azhai/xorm-refactor/cmd"
-	"gitee.com/azhai/xorm-refactor/config"
+	"gitee.com/azhai/xorm-refactor/setting"
 
 	{{range $dir, $al := .Imports}}
 	{{if ne $al $dir}}{{$al}} {{end -}}
@@ -25,11 +25,11 @@ func init() {
 	ConnectDatabases(confs, settings.Logging.SqlFile)
 }
 
-func ConnectDatabases(confs map[string]config.ConnConfig, logfile string) {
+func ConnectDatabases(confs map[string]setting.ConnConfig, logfile string) {
 	verbose := cmd.Verbose()
-	logger := config.NewSqlLogger(logfile)
+	logger := setting.NewSqlLogger(logfile)
 	for key, c := range confs {
-		r, _ := config.NewReverseSource(c)
+		r, _ := setting.NewReverseSource(c)
 		switch key {
 		{{- range $dir, $al := .Imports}}
 			case "{{$dir}}":

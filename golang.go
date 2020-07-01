@@ -15,8 +15,8 @@ import (
 	"text/template"
 	"time"
 
-	"gitee.com/azhai/xorm-refactor/config"
 	"gitee.com/azhai/xorm-refactor/rewrite"
+	"gitee.com/azhai/xorm-refactor/setting"
 	"github.com/azhai/gozzo-utils/filesystem"
 	"xorm.io/xorm/schemas"
 )
@@ -226,17 +226,17 @@ func tagXorm(table *schemas.Table, col *schemas.Column) string {
 	var res []string
 	if !col.Nullable {
 		if !isIdPk {
-			res = append(res, config.XORM_TAG_NOT_NULL)
+			res = append(res, setting.XORM_TAG_NOT_NULL)
 		}
 	}
 	if col.IsPrimaryKey {
-		res = append(res, config.XORM_TAG_PRIMARY_KEY)
+		res = append(res, setting.XORM_TAG_PRIMARY_KEY)
 	}
 	if col.Default != "" {
 		res = append(res, "default "+col.Default)
 	}
 	if col.IsAutoIncrement {
-		res = append(res, config.XORM_TAG_AUTO_INCR)
+		res = append(res, setting.XORM_TAG_AUTO_INCR)
 	}
 
 	if col.SQLType.IsTime() {
@@ -264,9 +264,9 @@ func tagXorm(table *schemas.Table, col *schemas.Column) string {
 		index := table.Indexes[name]
 		var uistr string
 		if index.Type == schemas.UniqueType {
-			uistr = config.XORM_TAG_UNIQUE
+			uistr = setting.XORM_TAG_UNIQUE
 		} else if index.Type == schemas.IndexType {
-			uistr = config.XORM_TAG_INDEX
+			uistr = setting.XORM_TAG_INDEX
 		}
 		if len(index.Cols) > 1 {
 			uistr += "(" + index.Name + ")"
@@ -276,7 +276,7 @@ func tagXorm(table *schemas.Table, col *schemas.Column) string {
 
 	res = append(res, GetColTypeString(col))
 	if len(res) > 0 {
-		return fmt.Sprintf(`%s:"%s"`, config.XORM_TAG_NAME, strings.Join(res, " "))
+		return fmt.Sprintf(`%s:"%s"`, setting.XORM_TAG_NAME, strings.Join(res, " "))
 	}
 	return ""
 }

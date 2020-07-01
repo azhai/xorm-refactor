@@ -8,7 +8,7 @@ import (
 	"strings"
 	"text/template"
 
-	"gitee.com/azhai/xorm-refactor/config"
+	"gitee.com/azhai/xorm-refactor/setting"
 	"xorm.io/xorm/schemas"
 )
 
@@ -45,7 +45,7 @@ func GetLanguage(name string) *Language {
 	return languages[name]
 }
 
-func (l *Language) FixTarget(target *config.ReverseTarget) {
+func (l *Language) FixTarget(target *setting.ReverseTarget) {
 	if target.ExtName == "" && l.ExtName != "" {
 		if !strings.HasPrefix(l.ExtName, ".") {
 			l.ExtName = "." + l.ExtName

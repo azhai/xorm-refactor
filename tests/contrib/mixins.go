@@ -3,8 +3,8 @@ package contrib
 import (
 	"strings"
 
-	"gitee.com/azhai/xorm-refactor/builtin/access"
-	"gitee.com/azhai/xorm-refactor/builtin/base"
+	"gitee.com/azhai/xorm-refactor/builtin"
+	"gitee.com/azhai/xorm-refactor/builtin/userpermit"
 	"gitee.com/azhai/xorm-refactor/tests/models/cron"
 	db "gitee.com/azhai/xorm-refactor/tests/models/default"
 )
@@ -28,25 +28,25 @@ type Permission struct {
 	db.Access `json:",inline" xorm:"extends"`
 }
 
-func (p Permission) CheckPerm(act uint16, url string) bool {
+func (p Permission) CheckPermit(access int, url string) bool {
 	if !p.RevokedAt.IsZero() || p.RoleName == "" || p.PermCode == 0 {
 		return false
 	}
 	if p.ResourceArgs != "*" && !strings.HasPrefix(url, p.ResourceArgs) {
 		return false
 	}
-	return access.ContainAction(uint16(p.PermCode), act, false)
+	return userpermit.ContainPermit(p.PermCode, access, false)
 }
 
 type CronTimerCluster struct {
-	cron.CronTimer     `json:",inline" xorm:"extends"`
-	*base.ClusterMixin `json:"-" xorm:"-"`
+	cron.CronTimer        `json:",inline" xorm:"extends"`
+	*builtin.ClusterMixin `json:"-" xorm:"-"`
 }
 
 func NewCronTimerCluster() *CronTimerCluster {
 	ct := cron.CronTimer{}
 	prefix := ct.TableName() + "_"
-	cm := base.GetClusterMixinFor("Monthly", prefix, cron.Engine())
+	cm := builtin.GetClusterMixinFor("Monthly", prefix, cron.Engine())
 	curr := prefix + cm.GetSuffix()
 	m := &CronTimerCluster{ct, cm}
 	m.ResetTable(curr, false)
@@ -64,7 +64,7 @@ func (m CronTimerCluster) TableName() string {
 
 func (m CronTimerCluster) ResetTable(curr string, trunc bool) error {
 	table := m.CronTimer.TableName()
-	create, err := base.CreateTableLike(cron.Engine(), curr, table)
+	create, err := builtin.CreateTableLike(cron.Engine(), curr, table)
 	if err == nil && !create && trunc {
 		err = TruncTable(curr)
 	}

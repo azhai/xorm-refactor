@@ -4,9 +4,9 @@ import (
 	"strings"
 
 	"gitee.com/azhai/xorm-refactor/builtin/auth"
+	"gitee.com/azhai/xorm-refactor/builtin/strcmp"
 	"gitee.com/azhai/xorm-refactor/builtin/usertype"
 	db "gitee.com/azhai/xorm-refactor/tests/models/default"
-	"gitee.com/azhai/xorm-refactor/utils"
 	"xorm.io/xorm"
 )
 
@@ -38,9 +38,9 @@ func (a UserAuth) GetUserType() (utype usertype.UserType, err error) {
 	}
 	var roles []string
 	roles, err = a.GetUserRoles()
-	if utils.InStringList(ROLE_NAME_LIMITED, roles) {
+	if strcmp.InStringList(ROLE_NAME_LIMITED, roles) {
 		utype = usertype.Limited
-	} else if utils.InStringList(ROLE_NAME_SUPER, roles) {
+	} else if strcmp.InStringList(ROLE_NAME_SUPER, roles) {
 		utype = usertype.Super
 	} else {
 		utype = usertype.Regular

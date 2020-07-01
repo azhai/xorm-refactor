@@ -1,4 +1,4 @@
-package config
+package setting
 
 import (
 	"github.com/azhai/gozzo-utils/logging"

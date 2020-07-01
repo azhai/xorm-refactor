@@ -34,8 +34,8 @@ func ({{$class}}) TableName() string {
 	golangCacheTemplate = `package {{.Target.NameSpace}}
 
 import (
-	"gitee.com/azhai/xorm-refactor/builtin/base"
-	"gitee.com/azhai/xorm-refactor/config"
+	"gitee.com/azhai/xorm-refactor/builtin"
+	"gitee.com/azhai/xorm-refactor/setting"
 	"github.com/azhai/gozzo-utils/redisw"
 	"github.com/gomodule/redigo/redis"
 	"xorm.io/xorm/log"
@@ -47,13 +47,13 @@ const (
 )
 
 var (
-	sessreg *base.SessionRegistry
+	sessreg *builtin.SessionRegistry
 )
 
 // 初始化、连接数据库和缓存
-func Initialize(r *config.ReverseSource, logger log.Logger, verbose bool) {
+func Initialize(r *setting.ReverseSource, logger log.Logger, verbose bool) {
 	var wrapper *redisw.RedisWrapper
-	d := config.ReverseSource2RedisDialect(r)
+	d := setting.ReverseSource2RedisDialect(r)
 	conn, err := d.Connect(verbose)
 	if err == nil {
 		wrapper = redisw.NewRedisConnMux(conn)
@@ -64,16 +64,16 @@ func Initialize(r *config.ReverseSource, logger log.Logger, verbose bool) {
 		}
 		wrapper = redisw.NewRedisPool(dial, -1)
 	}
-	sessreg = base.NewRegistry(wrapper)
+	sessreg = builtin.NewRegistry(wrapper)
 }
 
 // 获得当前会话管理器
-func Registry() *base.SessionRegistry {
+func Registry() *builtin.SessionRegistry {
 	return sessreg
 }
 
 // 获得用户会话
-func Session(token string) *base.Session {
+func Session(token string) *builtin.Session {
 	if sessreg == nil {
 		return nil
 	}
@@ -97,8 +97,8 @@ func DelSession(token string) bool {
 	golangConnTemplate = `package {{.Target.NameSpace}}
 
 import (
-	"gitee.com/azhai/xorm-refactor/builtin/base"
-	"gitee.com/azhai/xorm-refactor/config"
+	"gitee.com/azhai/xorm-refactor/builtin"
+	"gitee.com/azhai/xorm-refactor/setting"
 	_ "{{.ImporterPath}}"
 	"xorm.io/xorm"
 	"xorm.io/xorm/log"
@@ -109,7 +109,7 @@ var (
 )
 
 // 初始化、连接数据库和缓存
-func Initialize(r *config.ReverseSource, logger log.Logger, verbose bool) {
+func Initialize(r *setting.ReverseSource, logger log.Logger, verbose bool) {
 	var err error
 	engine, err = r.Connect(verbose)
 	if err != nil {
@@ -143,7 +143,7 @@ func Table(args ...interface{}) *xorm.Session {
 }
 
 // 执行事务
-func ExecTx(modify base.ModifyFunc) error {
+func ExecTx(modify builtin.ModifyFunc) error {
 	tx := engine.NewSession() // 必须是新的session
 	defer tx.Close()
 	_ = tx.Begin()
@@ -155,7 +155,7 @@ func ExecTx(modify base.ModifyFunc) error {
 }
 
 // 查询多行数据
-func QueryAll(filter base.FilterFunc, pages ...int) *xorm.Session {
+func QueryAll(filter builtin.FilterFunc, pages ...int) *xorm.Session {
 	query := engine.NewSession()
 	if filter != nil {
 		query = filter(query)
@@ -167,7 +167,7 @@ func QueryAll(filter base.FilterFunc, pages ...int) *xorm.Session {
 			pagesize = pages[1]
 		}
 	}
-	return base.Paginate(query, pageno, pagesize)
+	return builtin.Paginate(query, pageno, pagesize)
 }
 `
 
@@ -176,7 +176,7 @@ func QueryAll(filter base.FilterFunc, pages ...int) *xorm.Session {
 {{$initns := .Target.InitNameSpace -}}
 import (
 	"gitee.com/azhai/xorm-refactor/cmd"
-	"gitee.com/azhai/xorm-refactor/config"
+	"gitee.com/azhai/xorm-refactor/setting"
 
 	{{range $dir, $al := .Imports}}
 	{{if ne $al $dir}}{{$al}} {{end -}}
@@ -198,11 +198,11 @@ func init() {
 	ConnectDatabases(confs, settings.Logging.SqlFile)
 }
 
-func ConnectDatabases(confs map[string]config.ConnConfig, logfile string) {
+func ConnectDatabases(confs map[string]setting.ConnConfig, logfile string) {
 	verbose := cmd.Verbose()
-	logger := config.NewSqlLogger(logfile)
+	logger := setting.NewSqlLogger(logfile)
 	for key, c := range confs {
-		r, _ := config.NewReverseSource(c)
+		r, _ := setting.NewReverseSource(c)
 		switch key {
 		{{- range $dir, $al := .Imports}}
 			case "{{$dir}}":

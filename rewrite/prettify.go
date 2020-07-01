@@ -4,7 +4,7 @@ import (
 	"go/format"
 	"io/ioutil"
 
-	"gitee.com/azhai/xorm-refactor/config"
+	"gitee.com/azhai/xorm-refactor/setting"
 	"github.com/azhai/gozzo-utils/filesystem"
 	"golang.org/x/tools/imports"
 )
@@ -19,7 +19,7 @@ func FormatGolangCode(src []byte) ([]byte, error) {
 }
 
 func WriteCodeFile(fileName string, sourceCode []byte) ([]byte, error) {
-	err := ioutil.WriteFile(fileName, sourceCode, config.DEFAULT_FILE_MODE)
+	err := ioutil.WriteFile(fileName, sourceCode, setting.DEFAULT_FILE_MODE)
 	return sourceCode, err
 }
 
