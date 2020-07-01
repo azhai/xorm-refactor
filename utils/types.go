@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 )
 
@@ -36,6 +37,18 @@ func GetFinalType(v interface{}) (rt reflect.Type) {
 			}
 		}
 	}
+	return
+}
+
+func SortedKeys(data interface{}) (keys []string) {
+	rt := GetIndirectType(data)
+	if rt.Kind() != reflect.Map || rt.Key().Kind() != reflect.String {
+		return // data 必须是 map[string]xxxx 类型
+	}
+	for _, rv := range reflect.ValueOf(data).MapKeys() {
+		keys = append(keys, rv.String())
+	}
+	sort.Strings(keys)
 	return
 }
 
