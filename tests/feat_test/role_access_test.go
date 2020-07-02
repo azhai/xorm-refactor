@@ -3,8 +3,9 @@ package feat_test
 import (
 	"testing"
 
-	"gitee.com/azhai/xorm-refactor/builtin/auth"
-	"gitee.com/azhai/xorm-refactor/builtin/userpermit"
+	"gitee.com/azhai/xorm-refactor/base"
+	"gitee.com/azhai/xorm-refactor/enums"
+
 	"gitee.com/azhai/xorm-refactor/tests/contrib"
 	_ "gitee.com/azhai/xorm-refactor/tests/models"
 	db "gitee.com/azhai/xorm-refactor/tests/models/default"
@@ -16,20 +17,20 @@ func TestAccess01Insert(t *testing.T) {
 	err := contrib.TruncTable(m.TableName())
 	assert.NoError(t, err)
 	// 超管可以访问所有菜单
-	allActs := userpermit.UserPermit(2<<16 - 1)
+	allActs := enums.Permit(2<<16 - 1)
 	m, err = contrib.AddAccess("superuser", "menu", allActs, "*")
 	assert.NoError(t, err)
 	assert.Equal(t, m.Id, 1)
 	// 普通用户
-	userActs := userpermit.View | userpermit.Add | userpermit.Edit
+	userActs := enums.View | enums.Add | enums.Edit
 	m, err = contrib.AddAccess("member", "menu", userActs, "/dashboard")
 	assert.NoError(t, err)
 	assert.Equal(t, m.Id, 2)
-	m, err = contrib.AddAccess("member", "menu", userpermit.View, "/error/404")
+	m, err = contrib.AddAccess("member", "menu", enums.View, "/error/404")
 	assert.NoError(t, err)
 	assert.Equal(t, m.Id, 3)
 	// 未登录用户
-	m, err = contrib.AddAccess("", "menu", userpermit.View, "/error/404")
+	m, err = contrib.AddAccess("", "menu", enums.View, "/error/404")
 	assert.NoError(t, err)
 	assert.Equal(t, m.Id, 4)
 }
@@ -37,13 +38,13 @@ func TestAccess01Insert(t *testing.T) {
 func TestAccess02Anonymous(t *testing.T) {
 	var err error
 	anonymous := &contrib.UserAuth{}
-	err = auth.Authorize(anonymous, userpermit.View, "style.css")
+	err = base.Authorize(anonymous, enums.View, "style.css")
 	assert.NoError(t, err)
-	err = auth.Authorize(anonymous, userpermit.Edit, "/images/abc.jpg")
+	err = base.Authorize(anonymous, enums.Edit, "/images/abc.jpg")
 	assert.NoError(t, err)
-	err = auth.Authorize(anonymous, userpermit.Edit, "/error/404")
+	err = base.Authorize(anonymous, enums.Edit, "/error/404")
 	assert.NoError(t, err)
-	err = auth.Authorize(anonymous, userpermit.Edit, "/dashboard")
+	err = base.Authorize(anonymous, enums.Edit, "/dashboard")
 	assert.Error(t, err) // 无权限！
 }
 
@@ -51,11 +52,11 @@ func TestAccess03Demo(t *testing.T) {
 	var err error
 	demo := &contrib.UserAuth{User: new(db.User)}
 	demo.User.Load("username = ?", "demo")
-	err = auth.Authorize(demo, userpermit.Draft, "/images/abc.jpg")
+	err = base.Authorize(demo, enums.Draft, "/images/abc.jpg")
 	assert.NoError(t, err)
-	err = auth.Authorize(demo, userpermit.Edit, "/dashboard")
+	err = base.Authorize(demo, enums.Edit, "/dashboard")
 	assert.NoError(t, err)
-	err = auth.Authorize(demo, userpermit.View, "/notExists")
+	err = base.Authorize(demo, enums.View, "/notExists")
 	assert.Error(t, err) // 无权限！
 }
 
@@ -63,12 +64,12 @@ func TestAccess04Admin(t *testing.T) {
 	var err error
 	admin := &contrib.UserAuth{User: new(db.User)}
 	admin.User.Load("username = ?", "admin")
-	err = auth.Authorize(admin, userpermit.Edit, "/images/abc.jpg")
+	err = base.Authorize(admin, enums.Edit, "/images/abc.jpg")
 	assert.NoError(t, err)
-	err = auth.Authorize(admin, userpermit.Delete, "/dashboard")
+	err = base.Authorize(admin, enums.Delete, "/dashboard")
 	assert.NoError(t, err)
-	err = auth.Authorize(admin, userpermit.Add, "/notExists")
+	err = base.Authorize(admin, enums.Add, "/notExists")
 	assert.NoError(t, err)
-	err = auth.Authorize(admin, userpermit.Noop, "")
+	err = base.Authorize(admin, enums.Noop, "")
 	assert.NoError(t, err)
 }

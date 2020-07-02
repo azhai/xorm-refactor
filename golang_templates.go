@@ -34,7 +34,7 @@ func ({{$class}}) TableName() string {
 	golangCacheTemplate = `package {{.Target.NameSpace}}
 
 import (
-	"gitee.com/azhai/xorm-refactor/builtin"
+	"gitee.com/azhai/xorm-refactor/base"
 	"gitee.com/azhai/xorm-refactor/setting"
 	"github.com/azhai/gozzo-utils/redisw"
 	"github.com/gomodule/redigo/redis"
@@ -47,7 +47,7 @@ const (
 )
 
 var (
-	sessreg *builtin.SessionRegistry
+	sessreg *base.SessionRegistry
 )
 
 // 初始化、连接数据库和缓存
@@ -64,16 +64,16 @@ func Initialize(r *setting.ReverseSource, logger log.Logger, verbose bool) {
 		}
 		wrapper = redisw.NewRedisPool(dial, -1)
 	}
-	sessreg = builtin.NewRegistry(wrapper)
+	sessreg = base.NewRegistry(wrapper)
 }
 
 // 获得当前会话管理器
-func Registry() *builtin.SessionRegistry {
+func Registry() *base.SessionRegistry {
 	return sessreg
 }
 
 // 获得用户会话
-func Session(token string) *builtin.Session {
+func Session(token string) *base.Session {
 	if sessreg == nil {
 		return nil
 	}
@@ -97,7 +97,7 @@ func DelSession(token string) bool {
 	golangConnTemplate = `package {{.Target.NameSpace}}
 
 import (
-	"gitee.com/azhai/xorm-refactor/builtin"
+	"gitee.com/azhai/xorm-refactor/base"
 	"gitee.com/azhai/xorm-refactor/setting"
 	_ "{{.ImporterPath}}"
 	"xorm.io/xorm"
@@ -143,7 +143,7 @@ func Table(args ...interface{}) *xorm.Session {
 }
 
 // 执行事务
-func ExecTx(modify builtin.ModifyFunc) error {
+func ExecTx(modify base.ModifyFunc) error {
 	tx := engine.NewSession() // 必须是新的session
 	defer tx.Close()
 	_ = tx.Begin()
@@ -155,7 +155,7 @@ func ExecTx(modify builtin.ModifyFunc) error {
 }
 
 // 查询多行数据
-func QueryAll(filter builtin.FilterFunc, pages ...int) *xorm.Session {
+func QueryAll(filter base.FilterFunc, pages ...int) *xorm.Session {
 	query := engine.NewSession()
 	if filter != nil {
 		query = filter(query)
@@ -167,7 +167,7 @@ func QueryAll(filter builtin.FilterFunc, pages ...int) *xorm.Session {
 			pagesize = pages[1]
 		}
 	}
-	return builtin.Paginate(query, pageno, pagesize)
+	return base.Paginate(query, pageno, pagesize)
 }
 `
 

@@ -7,15 +7,15 @@ import (
 	"sort"
 	"strings"
 
-	"gitee.com/azhai/xorm-refactor/builtin/strcmp"
+	"gitee.com/azhai/xorm-refactor/enums"
 )
 
 const MODEL_EXTENDS = "`json:\",inline\" xorm:\"extends\"`"
 
 var substituteModels = map[string]*ModelSummary{
-	"builtin.TimeMixin": {
-		Name:   "builtin.TimeMixin",
-		Import: "gitee.com/azhai/xorm-refactor/builtin",
+	"base.TimeMixin": {
+		Name:   "base.TimeMixin",
+		Import: "gitee.com/azhai/xorm-refactor/base",
 		Alias:  "",
 		FieldLines: []string{
 			"CreatedAt time.Time `json:\"created_at\" xorm:\"created comment('创建时间') TIMESTAMP\"`       // 创建时间",
@@ -23,9 +23,9 @@ var substituteModels = map[string]*ModelSummary{
 			"DeletedAt time.Time `json:\"deleted_at\" xorm:\"deleted comment('删除时间') index TIMESTAMP\"` // 删除时间",
 		},
 	},
-	"builtin.NestedMixin": {
-		Name:   "builtin.NestedMixin",
-		Import: "gitee.com/azhai/xorm-refactor/builtin",
+	"base.NestedMixin": {
+		Name:   "base.NestedMixin",
+		Import: "gitee.com/azhai/xorm-refactor/base",
 		Alias:  "",
 		FieldLines: []string{
 			"Lft   int `json:\"lft\" xorm:\"notnull default 0 comment('左边界') INT(10)\"`           // 左边界",
@@ -130,7 +130,7 @@ func ReplaceSummary(summary, sub *ModelSummary) *ModelSummary {
 	var features, lines []string
 	find, sted := false, sub.GetSortedFeatures()
 	for i, ft := range summary.Features {
-		if !strcmp.InStringList(ft, sted) {
+		if !enums.InStringList(ft, sted) {
 			features = append(features, ft)
 			lines = append(lines, summary.FieldLines[i])
 		} else if !find {
@@ -199,7 +199,7 @@ func ParseAndMixinFile(fileName string, verbose bool) error {
 			sted := sub.GetSortedFeatures()
 			sorted := summary.GetSortedFeatures()
 			// 函数 IsSubsetList(..., ..., true) 用于排除异名同构的Model
-			if strcmp.IsSubsetList(sted, sorted, true) { // 正向替换
+			if enums.IsSubsetList(sted, sorted, true) { // 正向替换
 				summary = ReplaceSummary(summary, sub)
 				if sub.Import != "" {
 					imports[sub.Import] = sub.Alias
@@ -207,9 +207,9 @@ func ParseAndMixinFile(fileName string, verbose bool) error {
 				if verbose {
 					fmt.Println(summary.Name, " <- ", sub.Name)
 				}
-			} else if strings.HasPrefix(n, "builtin.") || n == summary.Name {
+			} else if strings.HasPrefix(n, "base.") || n == summary.Name {
 				continue // 早于反向替换，避免陷入死胡同
-			} else if strcmp.IsSubsetList(sorted, sted, true) { // 反向替换
+			} else if enums.IsSubsetList(sorted, sted, true) { // 反向替换
 				ReplaceSummary(sub, summary)
 				if verbose {
 					fmt.Println(sub.Name, " <- ", summary.Name)

@@ -1,5 +1,5 @@
 //go:generate enumer -type=StrCmp -text
-package strcmp
+package enums
 
 type StrCmp int
 

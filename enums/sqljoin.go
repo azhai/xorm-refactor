@@ -1,5 +1,5 @@
 //go:generate enumer -type=SqlJoin -transform=BLANK -text
-package sqljoin
+package enums
 
 import "strings"
 

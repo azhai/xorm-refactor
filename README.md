@@ -49,17 +49,17 @@ package db
 // Filename is models.go
 
 import (
-	"gitee.com/azhai/xorm-refactor/builtin"
+	"gitee.com/azhai/xorm-refactor/base"
 )
 
 type Menu struct {
 	Id                int `json:"id" xorm:"notnull pk autoincr INT(10)"`
-	*builtin.NestedMixin `json:",inline" xorm:"extends"`
+	*base.NestedMixin `json:",inline" xorm:"extends"`
 	Path              string `json:"path" xorm:"notnull default '' comment('路径') index VARCHAR(100)"`
 	Title             string `json:"title" xorm:"notnull default '' comment('名称') VARCHAR(50)"`
 	Icon              string `json:"icon" xorm:"comment('图标') VARCHAR(30)"`
 	Remark            string `json:"remark" xorm:"comment('说明备注') TEXT"`
-	*builtin.TimeMixin   `json:",inline" xorm:"extends"`
+	*base.TimeMixin   `json:",inline" xorm:"extends"`
 }
 ```
 

@@ -3,8 +3,9 @@ package crud_test
 import (
 	"testing"
 
-	"gitee.com/azhai/xorm-refactor/builtin"
-	"gitee.com/azhai/xorm-refactor/builtin/sqljoin"
+	"gitee.com/azhai/xorm-refactor/enums"
+
+	"gitee.com/azhai/xorm-refactor/base"
 	"gitee.com/azhai/xorm-refactor/tests/contrib"
 	_ "gitee.com/azhai/xorm-refactor/tests/models"
 	db "gitee.com/azhai/xorm-refactor/tests/models/default"
@@ -14,10 +15,10 @@ import (
 	"xorm.io/xorm"
 )
 
-func getFilter(engine *xorm.Engine, table string) builtin.FilterFunc {
+func getFilter(engine *xorm.Engine, table string) base.FilterFunc {
 	return func(query *xorm.Session) *xorm.Session {
-		cond := builtin.Qprintf(engine, "%s.%s IS NOT NULL", table, "prin_gid")
-		sort := builtin.Qprintf(engine, "%s.%s ASC", table, "id")
+		cond := base.Qprintf(engine, "%s.%s IS NOT NULL", table, "prin_gid")
+		sort := base.Qprintf(engine, "%s.%s ASC", table, "id")
 		return query.Where(cond).OrderBy(sort)
 	}
 }
@@ -41,26 +42,26 @@ func TestJoin01FindUserGroups(t *testing.T) {
 			pp.Println(cols)
 		}
 
-		foreign := builtin.ForeignTable{
-			Join:  sqljoin.LeftJoin,
+		foreign := base.ForeignTable{
+			Join:  enums.LeftJoin,
 			Table: *m.PrinGroup,
 			Alias: "", Index: "gid",
 		}
 		foreign.Alias = "P"
-		query, cols = builtin.JoinQuery(engine, query, table, "prin_gid", foreign)
+		query, cols = base.JoinQuery(engine, query, table, "prin_gid", foreign)
 		query = query.Cols(cols...)
 		if testing.Verbose() {
 			pp.Println(cols)
 		}
 		foreign.Alias = "V"
-		query, cols = builtin.JoinQuery(engine, query, table, "vice_gid", foreign)
+		query, cols = base.JoinQuery(engine, query, table, "vice_gid", foreign)
 		query = query.Cols(cols...)
 		if testing.Verbose() {
 			pp.Println(cols)
 		}
 
 		pageno, pagesize := 1, 20
-		builtin.Paginate(query, pageno, pagesize).Find(&objs)
+		base.Paginate(query, pageno, pagesize).Find(&objs)
 		if testing.Verbose() {
 			pp.Println(objs)
 		}
@@ -73,7 +74,7 @@ func TestJoin02LeftJoinQuery(t *testing.T) {
 	filter := getFilter(engine, table)
 
 	group := contrib.GroupSummary{}
-	query := builtin.NewLeftJoinQuery(engine, native)
+	query := base.NewLeftJoinQuery(engine, native)
 	query.AddLeftJoin(group, "gid", "prin_gid", "P")
 	query.AddLeftJoin(group, "gid", "vice_gid", "V")
 

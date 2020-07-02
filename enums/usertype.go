@@ -1,5 +1,5 @@
 //go:generate enumer -type=UserType -text
-package usertype
+package enums
 
 type UserType int
 

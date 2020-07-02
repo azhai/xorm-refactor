@@ -6,17 +6,17 @@ import (
 	"strings"
 	"time"
 
-	"gitee.com/azhai/xorm-refactor/builtin"
-	"gitee.com/azhai/xorm-refactor/builtin/userpermit"
+	"gitee.com/azhai/xorm-refactor/base"
+	"gitee.com/azhai/xorm-refactor/enums"
 	db "gitee.com/azhai/xorm-refactor/tests/models/default"
 	"gitee.com/azhai/xorm-refactor/utils"
 )
 
 // 清空表
 func TruncTable(tableName string) error {
-	engine := db.Engine()
-	sql := builtin.Qprintf(engine, "TRUNCATE TABLE %s", tableName)
-	_, err := engine.Exec(sql)
+	table := db.Quote(tableName)
+	sql := fmt.Sprintf("TRUNCATE TABLE %s", table)
+	_, err := db.Engine().Exec(sql)
 	return err
 }
 
@@ -72,12 +72,12 @@ func NewMenu(path, title, icon string) *db.Menu {
 
 // 添加子菜单
 func AddMenuToParent(menu, parent *db.Menu) (err error) {
-	var parentNode *builtin.NestedMixin
+	var parentNode *base.NestedMixin
 	if parent != nil {
 		parentNode = parent.NestedMixin
 	}
 	if menu.NestedMixin == nil {
-		menu.NestedMixin = new(builtin.NestedMixin)
+		menu.NestedMixin = new(base.NestedMixin)
 	}
 	query, table := db.Table(), menu.TableName()
 	err = menu.NestedMixin.AddToParent(parentNode, query, table)
@@ -88,12 +88,12 @@ func AddMenuToParent(menu, parent *db.Menu) (err error) {
 }
 
 // 添加权限
-func AddAccess(role, res string, perm userpermit.UserPermit, args ...string) (acc *db.Access, err error) {
+func AddAccess(role, res string, perm enums.Permit, args ...string) (acc *db.Access, err error) {
 	acc = &db.Access{
 		RoleName: role, PermCode: int(perm),
 		ResourceType: res, GrantedAt: time.Now(),
 	}
-	_, names := userpermit.DividePermit(acc.PermCode)
+	_, names := enums.DividePermit(acc.PermCode)
 	acc.Actions = strings.Join(names, ",")
 	if len(args) > 0 {
 		resArgs := strings.Join(args, ",")

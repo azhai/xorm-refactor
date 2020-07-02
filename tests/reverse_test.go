@@ -8,10 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"gitee.com/azhai/xorm-refactor/builtin/strcmp"
-
 	"gitee.com/azhai/xorm-refactor"
 	"gitee.com/azhai/xorm-refactor/cmd"
+	"gitee.com/azhai/xorm-refactor/enums"
 	"gitee.com/azhai/xorm-refactor/setting"
 	"github.com/azhai/gozzo-utils/filesystem"
 	"github.com/k0kubun/pp"
@@ -83,7 +82,7 @@ func createTables(settings setting.IReverseConfig) (err error) {
 // 如果要无视 lock 文件，运行 go test -v --args force
 func Test01CreateTables(t *testing.T) {
 	if lockFile != "" { // 使用 lock 文件，防止删除已有数据表
-		force := strcmp.InStringList("force", os.Args)
+		force := enums.InStringList("force", os.Args)
 		fp, err := checkLockFile(force)
 		if err != nil {
 			fmt.Println(err.Error())

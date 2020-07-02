@@ -1,11 +1,9 @@
-package auth
+package base
 
 import (
 	"fmt"
 
-	"gitee.com/azhai/xorm-refactor/builtin/strcmp"
-	"gitee.com/azhai/xorm-refactor/builtin/userpermit"
-	"gitee.com/azhai/xorm-refactor/builtin/usertype"
+	"gitee.com/azhai/xorm-refactor/enums"
 )
 
 type IPermission interface {
@@ -14,7 +12,7 @@ type IPermission interface {
 
 type IUserAuth interface {
 	// 用户分类，无法区分内部用户和普通用户
-	GetUserType() (utype usertype.UserType, err error)
+	GetUserType() (utype enums.UserType, err error)
 
 	// 用户拥有的角色
 	GetUserRoles() (roles []string, err error)
@@ -39,7 +37,7 @@ type IUserAuth interface {
 }
 
 // 用户鉴权
-func Authorize(auth IUserAuth, access userpermit.UserPermit, url string) error {
+func Authorize(auth IUserAuth, access enums.Permit, url string) error {
 	var err error
 
 	// 1. 静态资源，直接放行
@@ -47,15 +45,15 @@ func Authorize(auth IUserAuth, access userpermit.UserPermit, url string) error {
 		return nil
 	}
 
-	var utype usertype.UserType
+	var utype enums.UserType
 	if utype, err = auth.GetUserType(); err != nil { // 出错了
 		return err
 	}
 
 	// 2. 匿名用户，如果是公开资源放行，否则失败
-	if utype == usertype.Anonymous || utype == usertype.Forbidden {
+	if utype == enums.Anonymous || utype == enums.Forbidden {
 		if urls := auth.GetAnonymousOpenUrls(); len(urls) > 0 {
-			if !strcmp.StartStringList(url, urls) {
+			if !enums.StartStringList(url, urls) {
 				err = fmt.Errorf("已注册用户可访问，请您先登录！")
 			}
 		}
@@ -63,14 +61,14 @@ func Authorize(auth IUserAuth, access userpermit.UserPermit, url string) error {
 	}
 
 	// 3. 受限用户，优先判断黑名单，此网址在黑名单中则失败
-	if utype == usertype.Limited {
+	if utype == enums.Limited {
 		if urls := auth.GetLimitedBlackListUrls(); len(urls) > 0 { // 二选一
-			if strcmp.StartStringList(url, urls) {
+			if enums.StartStringList(url, urls) {
 				err = fmt.Errorf("您的账号无权限访问，请联系客服！")
 				return err
 			}
 		} else if urls := auth.GetLimitedWhiteListUrls(); len(urls) > 0 { // 二选一
-			if strcmp.StartStringList(url, urls) {
+			if enums.StartStringList(url, urls) {
 				return nil
 			}
 		}
@@ -82,7 +80,7 @@ func Authorize(auth IUserAuth, access userpermit.UserPermit, url string) error {
 	}
 
 	// 4. 超级用户，如果有此权限则放行
-	if utype == usertype.Super {
+	if utype == enums.Super {
 		if perms := auth.GetSuperPermissions(roles); len(perms) > 0 {
 			for _, perm := range perms {
 				if perm.CheckPermit(int(access), url) {

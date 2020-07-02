@@ -6,7 +6,7 @@ import (
 	"gitee.com/azhai/xorm-refactor/cmd"
 	"github.com/k0kubun/pp"
 
-	"gitee.com/azhai/xorm-refactor/builtin"
+	"gitee.com/azhai/xorm-refactor/base"
 	"gitee.com/azhai/xorm-refactor/tests/contrib"
 	_ "gitee.com/azhai/xorm-refactor/tests/models"
 	db "gitee.com/azhai/xorm-refactor/tests/models/default"
@@ -63,7 +63,7 @@ func TestNested02Rebuild(t *testing.T) {
 	affects, err = db.Table(table).Update(changes)
 	assert.NoError(t, err)
 	assert.Equal(t, count, affects)
-	err = builtin.RebuildNestedByDepth(db.Table(), table)
+	err = base.RebuildNestedByDepth(db.Table(), table)
 	assert.NoError(t, err)
 	count, err = db.Table(table).Where("lft = 0 OR rgt = 0").Count()
 	assert.NoError(t, err)
@@ -102,7 +102,7 @@ func TestNested04FindChildren(t *testing.T) {
 // 查找所有菜单
 func TestNested05AllMenus(t *testing.T) {
 	var menus []Menu
-	filter := new(builtin.NestedMixin).ChildrenFilter(-1, false)
+	filter := new(base.NestedMixin).ChildrenFilter(-1, false)
 	err := db.QueryAll(filter).Find(&menus)
 	assert.NoError(t, err)
 

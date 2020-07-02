@@ -1,10 +1,11 @@
-package builtin
+package base
 
 import (
 	"bytes"
 	"fmt"
 
-	"gitee.com/azhai/xorm-refactor/builtin/sqljoin"
+	"gitee.com/azhai/xorm-refactor/enums"
+
 	"gitee.com/azhai/xorm-refactor/utils"
 	"xorm.io/xorm"
 )
@@ -25,7 +26,7 @@ func JoinQuery(engine *xorm.Engine, query *xorm.Session,
 
 // 关联表
 type ForeignTable struct {
-	Join  sqljoin.SqlJoin
+	Join  enums.SqlJoin
 	Table ITableName
 	Alias string
 	Index string
@@ -104,7 +105,7 @@ func (q *LeftJoinQuery) AddLeftJoin(foreign ITableName, pkey, fkey, alias string
 		q.ForeignKeys = append(q.ForeignKeys, fkey)
 	}
 	q.Foreigns[fkey] = ForeignTable{
-		Join:  sqljoin.LeftJoin,
+		Join:  enums.LeftJoin,
 		Table: foreign,
 		Alias: alias,
 		Index: pkey,

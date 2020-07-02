@@ -1,4 +1,4 @@
-package strcmp
+package enums
 
 import (
 	"sort"

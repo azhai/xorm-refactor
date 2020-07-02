@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"gitee.com/azhai/xorm-refactor/builtin"
+	"gitee.com/azhai/xorm-refactor/base"
 	"gitee.com/azhai/xorm-refactor/tests/contrib"
 	_ "gitee.com/azhai/xorm-refactor/tests/models"
 	"gitee.com/azhai/xorm-refactor/tests/models/cache"
@@ -21,7 +21,7 @@ var (
 )
 
 // 写入Session
-func writeSession(sess *builtin.Session, user *db.User) error {
+func writeSession(sess *base.Session, user *db.User) error {
 	roles, err := contrib.GetUserRoles(user)
 	if err != nil {
 		return err

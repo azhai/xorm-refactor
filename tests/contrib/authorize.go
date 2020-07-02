@@ -3,9 +3,8 @@ package contrib
 import (
 	"strings"
 
-	"gitee.com/azhai/xorm-refactor/builtin/auth"
-	"gitee.com/azhai/xorm-refactor/builtin/strcmp"
-	"gitee.com/azhai/xorm-refactor/builtin/usertype"
+	"gitee.com/azhai/xorm-refactor/base"
+	"gitee.com/azhai/xorm-refactor/enums"
 	db "gitee.com/azhai/xorm-refactor/tests/models/default"
 	"xorm.io/xorm"
 )
@@ -23,27 +22,27 @@ var (
 
 type UserAuth struct {
 	*db.User
-	auth.IUserAuth
+	base.IUserAuth
 }
 
 // 用户分类，无法区分内部用户和普通用户
-func (a UserAuth) GetUserType() (utype usertype.UserType, err error) {
+func (a UserAuth) GetUserType() (utype enums.UserType, err error) {
 	if a.User == nil || a.User.Id == 0 {
-		utype = usertype.Anonymous
+		utype = enums.Anonymous
 		return
 	}
 	if !a.User.DeletedAt.IsZero() {
-		utype = usertype.Forbidden
+		utype = enums.Forbidden
 		return
 	}
 	var roles []string
 	roles, err = a.GetUserRoles()
-	if strcmp.InStringList(ROLE_NAME_LIMITED, roles) {
-		utype = usertype.Limited
-	} else if strcmp.InStringList(ROLE_NAME_SUPER, roles) {
-		utype = usertype.Super
+	if enums.InStringList(ROLE_NAME_LIMITED, roles) {
+		utype = enums.Limited
+	} else if enums.InStringList(ROLE_NAME_SUPER, roles) {
+		utype = enums.Super
 	} else {
-		utype = usertype.Regular
+		utype = enums.Regular
 	}
 	return
 }
@@ -93,7 +92,7 @@ func (a UserAuth) GetLimitedWhiteListUrls() []string {
 }
 
 // 获取正常用户权限可访问的网址
-func (a UserAuth) GetRegularPermissions(roles []string) (perms []auth.IPermission) {
+func (a UserAuth) GetRegularPermissions(roles []string) (perms []base.IPermission) {
 	var objs []*Permission
 	QueryPermissions(roles...).Find(&objs)
 	for _, obj := range objs {
@@ -103,7 +102,7 @@ func (a UserAuth) GetRegularPermissions(roles []string) (perms []auth.IPermissio
 }
 
 // 获取超级用户权限可访问的网址，不再检查正常用户权限
-func (a UserAuth) GetSuperPermissions(roles []string) (perms []auth.IPermission) {
+func (a UserAuth) GetSuperPermissions(roles []string) (perms []base.IPermission) {
 	var objs []*Permission
 	QueryPermissions(ROLE_NAME_SUPER).Find(&objs)
 	for _, obj := range objs {

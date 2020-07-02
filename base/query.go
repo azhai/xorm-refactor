@@ -1,4 +1,4 @@
-package builtin
+package base
 
 import (
 	"context"
@@ -65,7 +65,7 @@ func FindTables(engine *xorm.Engine, prefix string, fullName bool) []string {
 // 复制表结构，只用于MySQL
 func CreateTableLike(engine *xorm.Engine, curr, orig string) (bool, error) {
 	if engine.DriverName() != "mysql" {
-		err := fmt.Errorf("Only support mysql/mariadb database !")
+		err := fmt.Errorf("only support mysql/mariadb database !")
 		return false, err
 	}
 	exists, err := engine.IsTableExist(curr)
@@ -77,7 +77,7 @@ func CreateTableLike(engine *xorm.Engine, curr, orig string) (bool, error) {
 	return err == nil, err
 }
 
-// 获取Model的字段列表
+// 获取Model的主键
 func GetPrimarykey(engine *xorm.Engine, m interface{}) *schemas.Column {
 	table, err := engine.TableInfo(m)
 	if err != nil {
