@@ -174,6 +174,9 @@ make all
 application:
    debug: true
    plural_table: false  #表名是否使用复数
+   version: "1.0.0"
+   options:
+      insert_batch: 50  #批量写入每次多少行
 
 logging:
    sql_file: ""

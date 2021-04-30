@@ -2,6 +2,7 @@ package setting
 
 import (
 	"bytes"
+	"gopkg.in/yaml.v2"
 	"os"
 
 	"gitee.com/azhai/xorm-refactor/setting/dialect"
@@ -24,8 +25,10 @@ type IReverseConfig interface {
 }
 
 type AppConfig struct {
-	Debug       bool `json:"debug" yaml:"debug"`
-	PluralTable bool `json:"plural_table" yaml:"plural_table"`
+	Debug       bool                   `json:"debug" yaml:"debug"`
+	PluralTable bool                   `json:"plural_table" yaml:"plural_table"`
+	Version     string                 `json:"version" yaml:"version"`
+	Options     map[string]interface{} `json:"options" yaml:"options"`
 }
 
 type LogConfig struct {
