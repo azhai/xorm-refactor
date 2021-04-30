@@ -1,9 +1,20 @@
 BINNAME=refactor
 RELEASE=-s -w
-UPXBIN=/usr/local/bin/upx
-GOBIN=/usr/local/bin/go
+
 GOOS=$(shell uname -s | tr [A-Z] [a-z])
 GOARGS=GOARCH=amd64 CGO_ENABLED=1
+ifeq ($(GOOS),windows)
+    GOBIN=go
+    UPXBIN=
+else
+    ifeq ($(GOOS),darwin)
+        GOBIN=/usr/local/bin/go
+        UPXBIN=/usr/local/bin/upx
+    else
+        GOBIN=/usr/bin/go
+        UPXBIN=/usr/bin/upx
+    endif
+endif
 GOBUILD=$(GOARGS) $(GOBIN) build -ldflags="$(RELEASE)"
 
 .PHONY: all build clean upx upxx

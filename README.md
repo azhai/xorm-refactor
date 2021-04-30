@@ -140,17 +140,17 @@ func GetMenus(id int) ([]*db.Menu, error) {
 }
 ```
 
-## 测试
+## ~~测试~~
 
-安装好Go编译器，下载本项目源码解压。
+~~安装好Go编译器，下载本项目源码解压。~~
 
-进入 tests 目录，修改 settings.yml 中的 MySQL 和 Redis 地址、端口、用户名和密码等配置。
+~~进入 tests 目录，修改 settings.yml 中的 MySQL 和 Redis 地址、端口、用户名和密码等配置。~~
 
-运行 go test -v 将会在数据库中创建表（具体内容请查看 mysql_test.sql 文件），并生成 models
+~~运行 go test -v 将会在数据库中创建表（具体内容请查看 mysql_test.sql 文件），并生成 models~~
 
-接着进入 tests 目录下的 crud_test 子目录， 运行 go test -v 执行各种查询、写入、鉴权测试，
+~~接着进入 tests 目录下的 crud_test 子目录， 运行 go test -v 执行各种查询、写入、鉴权测试，~~
 
-具体执行了什么，请查看屏幕输出和阅读子目录下的 *_test.go 测试文件代码。
+~~具体执行了什么，请查看屏幕输出和阅读子目录下的 *_test.go 测试文件代码。~~
 
 
 ## 安装

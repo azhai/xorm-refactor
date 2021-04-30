@@ -2,7 +2,6 @@ package setting
 
 import (
 	"bytes"
-	"gopkg.in/yaml.v2"
 	"os"
 
 	"gitee.com/azhai/xorm-refactor/setting/dialect"
