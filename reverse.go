@@ -15,7 +15,6 @@ import (
 	"gitee.com/azhai/xorm-refactor/rewrite"
 	"gitee.com/azhai/xorm-refactor/setting"
 	"github.com/azhai/gozzo-utils/filesystem"
-	"github.com/gobwas/glob"
 	"github.com/grsmv/inflect"
 	"xorm.io/xorm/names"
 	"xorm.io/xorm/schemas"
@@ -37,6 +36,20 @@ var (
 		"GetCreatedColumn": GetCreatedColumn,
 	}
 )
+
+func filterTables(tables []*schemas.Table, includes, excludes []string) []*schemas.Table {
+	res := make([]*schemas.Table, 0, len(tables))
+	incl_matchers, excl_matchers := setting.NewGlobs(includes), setting.NewGlobs(excludes)
+	for _, tb := range tables {
+		if excl_matchers.MatchAny(tb.Name, false) {
+			continue
+		}
+		if incl_matchers.MatchAny(tb.Name, true) {
+			res = append(res, tb)
+		}
+	}
+	return res
+}
 
 // 如果复数形式和单数相同，人为增加后缀
 func DiffPluralize(word, suffix string) string {
@@ -76,40 +89,6 @@ func GetTableSchemas(source *setting.ReverseSource, target *setting.ReverseTarge
 	}
 	tableSchemas, _ = engine.DBMetas()
 	return filterTables(tableSchemas, target.IncludeTables, target.ExcludeTables)
-}
-
-func filterTables(tables []*schemas.Table, includes, excludes []string) []*schemas.Table {
-	res := make([]*schemas.Table, 0, len(tables))
-	for _, tb := range tables {
-		var remove bool
-		for _, exclude := range excludes {
-			s, _ := glob.Compile(exclude)
-			remove = s.Match(tb.Name)
-			if remove {
-				break
-			}
-		}
-		if remove {
-			continue
-		}
-		if len(includes) == 0 {
-			res = append(res, tb)
-			continue
-		}
-
-		var keep bool
-		for _, include := range includes {
-			s, _ := glob.Compile(include)
-			keep = s.Match(tb.Name)
-			if keep {
-				break
-			}
-		}
-		if keep {
-			res = append(res, tb)
-		}
-	}
-	return res
 }
 
 func newFuncs() template.FuncMap {
