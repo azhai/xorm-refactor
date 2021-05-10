@@ -2,10 +2,16 @@ package setting
 
 import (
 	"bytes"
+	"io/ioutil"
 	"os"
+	"strings"
 
 	"gitee.com/azhai/xorm-refactor/setting/dialect"
+	"github.com/azhai/gozzo-utils/filesystem"
+	json "github.com/goccy/go-json"
+	"github.com/gomodule/redigo/redis"
 	"gopkg.in/yaml.v3"
+	"xorm.io/xorm"
 )
 
 const (
@@ -13,106 +19,80 @@ const (
 	DEFAULT_FILE_MODE = 0o644
 )
 
-type IConnectConfig interface {
+type IReverseConfig interface {
+	GetReverseTarget(name string) ReverseTarget
 	GetConnConfigMap(keys ...string) map[string]ConnConfig
 	GetConnConfig(key string) (ConnConfig, bool)
 }
 
-type IReverseConfig interface {
-	GetReverseTargets() []ReverseTarget
-	IConnectConfig
-}
-
-type AppConfig struct {
-	Debug       bool                   `json:"debug" yaml:"debug"`
-	PluralTable bool                   `json:"plural_table" yaml:"plural_table"`
-	Version     string                 `json:"version" yaml:"version"`
-	Options     map[string]interface{} `json:"options" yaml:"options"`
-}
-
-type LogConfig struct {
-	AccessFile string `json:"access_file" yaml:"access_file"`
-	ErrorFile  string `json:"error_file" yaml:"error_file"`
-	SqlFile    string `json:"sql_file" yaml:"sql_file"`
-}
-
-type PartConfig struct {
-	TablePrefix   string   `json:"table_prefix" yaml:"table_prefix"`
-	IncludeTables []string `json:"include_tables" yaml:"include_tables"`
-	ExcludeTables []string `json:"exclude_tables" yaml:"exclude_tables"`
-}
-
 type ConnConfig struct {
-	DriverName string                          `json:"driver_name" yaml:"driver_name"`
-	ReadOnly   bool                            `json:"read_only" yaml:"read_only"`
-	Params     dialect.ConnParams              `json:"params" yaml:"params"`
-	PartConfig `json:",inline" yaml:",inline"` // 注意逗号不能少
+	DriverName  string             `json:"driver_name" yaml:"driver_name"`
+	ReadOnly    bool               `json:"read_only" yaml:"read_only"`
+	TablePrefix string             `json:"table_prefix" yaml:"table_prefix"`
+	LogFile     string             `json:"log_file" yaml:"log_file"`
+	Params      dialect.ConnParams `json:"params" yaml:"params"`
 }
 
-func NewReverseSource(c ConnConfig) (*ReverseSource, dialect.Dialect) {
+func (c ConnConfig) ConnectXorm(verbose bool) (*xorm.Engine, error) {
 	d := dialect.GetDialectByName(c.DriverName)
-	r := &ReverseSource{
-		Database: d.Name(), // 其实也等于 c.DriverName
-		ConnStr:  d.ParseDSN(c.Params),
+	dsn := d.ParseDSN(c.Params)
+	engine, err := xorm.NewEngine(c.DriverName, dsn)
+	if err == nil {
+		engine.ShowSQL(verbose)
 	}
-	if dr, ok := d.(*dialect.Redis); ok {
-		r.OptStr = dr.Values.Encode()
-	}
-	return r, d
+	return engine, err
 }
 
-func ReverseSource2RedisDialect(r *ReverseSource) *dialect.Redis {
-	d, err := dialect.NewRedis(r.ConnStr, "")
-	if err != nil || r.Database != d.Name() {
-		return nil
-	}
-	_ = d.ParseOptions(r.OptStr)
-	return d
-}
-
-type DataSource struct {
-	ConnKey      string
-	ImporterPath string
-	PartConfig
-	*ReverseSource
-}
-
-func NewDataSource(c ConnConfig, name string) *DataSource {
-	ds := &DataSource{ConnKey: name, PartConfig: c.PartConfig}
-	var d dialect.Dialect
-	ds.ReverseSource, d = NewReverseSource(c)
-	if d != nil {
-		ds.ImporterPath = d.ImporterPath()
-	}
-	return ds
-}
-
-func (ds DataSource) GetDriverName() string {
-	if ds.ReverseSource != nil {
-		return ds.ReverseSource.Database
-	}
-	return ""
+func (c ConnConfig) ConnectRedis(verbose bool) (redis.Conn, error) {
+	d := new(dialect.Redis)
+	addr := d.ParseDSN(c.Params)
+	return redis.Dial("tcp", addr, d.GetOptions()...)
 }
 
 type Configure struct {
-	Application    AppConfig             `json:"application" yaml:"application"`
-	Logging        LogConfig             `json:"logging" yaml:"logging"`
-	Connections    map[string]ConnConfig `json:"connections" yaml:"connections"`
-	ReverseTargets []ReverseTarget       `json:"reverse_targets" yaml:"reverse_targets"`
+	Debug         bool                  `json:"debug" yaml:"debug"`
+	Connections   map[string]ConnConfig `json:"connections" yaml:"connections"`
+	ReverseTarget ReverseTarget         `json:"reverse_target" yaml:"reverse_target"`
+}
+
+func ReadSettingsFrom(fileType, fileName string, cfg interface{}) error {
+	var err error
+	switch fileType {
+	case "json", "Json", "JSON":
+		var content []byte
+		content, err = ioutil.ReadFile(fileName)
+		if err == nil {
+			err = json.Unmarshal(content, &cfg)
+		}
+	case "yaml", "Yaml", "YAML":
+		var fp *os.File
+		fp, err = os.Open(fileName)
+		if err == nil {
+			err = yaml.NewDecoder(fp).Decode(cfg)
+		}
+	}
+	return err
 }
 
 func ReadSettings(fileName string) (*Configure, error) {
-	cfg := new(Configure)
-	err := ReadSettingsFrom(fileName, &cfg)
-	return cfg, err
-}
-
-func ReadSettingsFrom(fileName string, cfg interface{}) error {
-	rd, err := os.Open(fileName)
-	if err == nil {
-		err = yaml.NewDecoder(rd).Decode(cfg)
+	cfg, fileType := new(Configure), "yaml"
+	err := ReadSettingsFrom(fileType, fileName, &cfg)
+	if err != nil {
+		return cfg, err
 	}
-	return err
+	if cfg.Connections == nil {
+		dbFileName := strings.Replace(fileName, "settings.yml", "databases.yml", 1)
+		size, exists := filesystem.FileSize(dbFileName)
+		if exists == false || size <= 0 {
+			dbFileName = strings.Replace(fileName, "settings.yml", "databases.json", 1)
+			fileType = "json"
+		}
+		err = ReadSettingsFrom(fileType, dbFileName, &cfg.Connections)
+	}
+	if err == nil && len(cfg.Connections) > 0 {
+		cfg.RemovePrivates()
+	}
+	return cfg, err
 }
 
 func SaveSettingsTo(fileName string, cfg interface{}) error {
@@ -132,8 +112,19 @@ func Settings2Bytes(cfg interface{}) []byte {
 	return nil
 }
 
-func (cfg Configure) GetReverseTargets() []ReverseTarget {
-	return cfg.ReverseTargets
+func (cfg Configure) GetReverseTarget(name string) ReverseTarget {
+	if name == "*" || name == cfg.ReverseTarget.Language {
+		return cfg.ReverseTarget
+	}
+	return ReverseTarget{OutputDir: "/dev/null"}
+}
+
+func (cfg Configure) RemovePrivates() {
+	for key := range cfg.Connections {
+		if strings.HasPrefix(key, "_") {
+			delete(cfg.Connections, key)
+		}
+	}
 }
 
 func (cfg Configure) GetConnConfigMap(keys ...string) map[string]ConnConfig {

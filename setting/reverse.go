@@ -9,10 +9,13 @@ import (
 	"os"
 	"path/filepath"
 
+	"gitee.com/azhai/xorm-refactor/setting/dialect"
+	"github.com/gomodule/redigo/redis"
+
+	//_ "github.com/mattn/go-oci8"
 	_ "github.com/denisenkom/go-mssqldb"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
-	//_ "github.com/mattn/go-oci8"
 	_ "github.com/mattn/go-sqlite3"
 	"xorm.io/xorm"
 )
@@ -31,62 +34,72 @@ const ( // 约定大于配置
 	XORM_TAG_INDEX       = "index"
 )
 
-// ReverseConfig represents a reverse configuration
-type ReverseConfig struct {
-	Kind    string          `yaml:"kind"`
-	Name    string          `yaml:"name"`
-	Source  ReverseSource   `yaml:"source"`
-	Targets []ReverseTarget `yaml:"targets"`
-}
-
 // ReverseSource represents a reverse source which should be a database connection
 type ReverseSource struct {
-	Database string `yaml:"database"`
-	ConnStr  string `yaml:"conn_str"`
-	OptStr   string `yaml:"opt_str"`
+	DriverName   string             `json:"driver_name" yaml:"driver_name"`
+	TablePrefix  string             `json:"table_prefix" yaml:"table_prefix"`
+	ImporterPath string             `json:"importer_path" yaml:"importer_path"`
+	ConnStr      string             `json:"conn_str" yaml:"conn_str"`
+	OptStr       string             `json:"opt_str" yaml:"opt_str"`
+	options      []redis.DialOption `json:"-" yaml:"-"`
 }
 
-func (r ReverseSource) Connect(verbose bool) (*xorm.Engine, error) {
-	if r.Database == "" || r.ConnStr == "" {
-		return nil, fmt.Errorf("the config of connection is empty")
-	} else if verbose {
-		fmt.Println("Connect:", r.Database, r.ConnStr)
+func NewReverseSource(c ConnConfig) (*ReverseSource, dialect.Dialect) {
+	d := dialect.GetDialectByName(c.DriverName)
+	r := &ReverseSource{
+		DriverName:   c.DriverName,
+		TablePrefix:  c.TablePrefix,
+		ConnStr:      d.ParseDSN(c.Params),
+		ImporterPath: d.ImporterPath(),
 	}
-	engine, err := xorm.NewEngine(r.Database, r.ConnStr)
+	if dr, ok := d.(*dialect.Redis); ok {
+		r.options = dr.GetOptions()
+		r.OptStr = dr.Values.Encode()
+	}
+	return r, d
+}
+
+func (r ReverseSource) Connect(verbose bool) (*xorm.Engine, redis.Conn, error) {
+	if r.DriverName == "" || r.ConnStr == "" {
+		err := fmt.Errorf("the config of connection is empty")
+		return nil, nil, err
+	} else if verbose {
+		fmt.Println("Connect:", r.DriverName, r.ConnStr)
+	}
+	if r.DriverName == "redis" {
+		conn, err := redis.Dial("tcp", r.ConnStr, r.options...)
+		return nil, conn, err
+	}
+	engine, err := xorm.NewEngine(r.DriverName, r.ConnStr)
 	if err == nil {
 		engine.ShowSQL(verbose)
 	}
-	return engine, err
+	return engine, nil, err
 }
 
 // ReverseTarget represents a reverse target
 type ReverseTarget struct {
-	Type              string   `yaml:"type"`
-	IncludeTables     []string `yaml:"include_tables"`
-	ExcludeTables     []string `yaml:"exclude_tables"`
-	TableMapper       string   `yaml:"table_mapper"`
-	ColumnMapper      string   `yaml:"column_mapper"`
-	TemplatePath      string   `yaml:"template_path"`
-	QueryTemplatePath string   `yaml:"query_template_path"`
-	InitTemplatePath  string   `yaml:"init_template_path"`
-	InitNameSpace     string   `yaml:"init_name_space"`
-	MultipleFiles     bool     `yaml:"multiple_files"`
-	OutputDir         string   `yaml:"output_dir"`
-	TablePrefix       string   `yaml:"table_prefix"`
-	Language          string   `yaml:"language"`
+	Language          string   `json:"language" yaml:"language"`
+	IncludeTables     []string `json:"include_tables" yaml:"include_tables"`
+	ExcludeTables     []string `json:"exclude_tables" yaml:"exclude_tables"`
+	NameSpace         string   `json:"name_space" yaml:"name_space"`
+	InitNameSpace     string   `json:"init_name_space" yaml:"init_name_space"`
+	OutputDir         string   `json:"output_dir" yaml:"output_dir"`
+	TemplatePath      string   `json:"template_path" yaml:"template_path"`
+	QueryTemplatePath string   `json:"query_template_path" yaml:"query_template_path"`
+	InitTemplatePath  string   `json:"init_template_path" yaml:"init_template_path"`
 
-	Funcs     map[string]string `yaml:"funcs"`
-	Formatter string            `yaml:"formatter"`
-	Importter string            `yaml:"importter"`
-	ExtName   string            `yaml:"ext_name"`
+	TableMapper  string            `json:"table_mapper" yaml:"table_mapper"`
+	ColumnMapper string            `json:"column_mapper" yaml:"column_mapper"`
+	Funcs        map[string]string `json:"funcs" yaml:"funcs"`
+	Formatter    string            `json:"formatter" yaml:"formatter"`
+	Importter    string            `json:"importter" yaml:"importter"`
+	ExtName      string            `json:"ext_name" yaml:"ext_name"`
 
-	NameSpace       string `yaml:"name_space"`
-	GenJsonTag      bool   `yaml:"gen_json_tag"`
-	GenTableName    bool   `yaml:"gen_table_name"`
-	GenQueryMethods bool   `yaml:"gen_query_methods"`
-	ApplyMixins     bool   `yaml:"apply_mixins"`
-	MixinDirPath    string `yaml:"mixin_dir_path"`
-	MixinNameSpace  string `yaml:"mixin_name_space"`
+	MultipleFiles  bool   `json:"multiple_files" yaml:"multiple_files"`
+	ApplyMixins    bool   `json:"apply_mixins" yaml:"apply_mixins"`
+	MixinDirPath   string `json:"mixin_dir_path" yaml:"mixin_dir_path"`
+	MixinNameSpace string `json:"mixin_name_space" yaml:"mixin_name_space"`
 }
 
 func (t ReverseTarget) GetFileName(dir, name string) string {
@@ -106,21 +119,12 @@ func (t ReverseTarget) GetParentOutFileName(name string, backward int) string {
 	return t.GetFileName(outDir, name)
 }
 
-func (t ReverseTarget) MergeOptions(name string, part PartConfig) ReverseTarget {
-	if t.Type == "codes" && t.Language == "" {
+func (t ReverseTarget) MergeOptions(key string, src *ReverseSource) ReverseTarget {
+	if t.Language == "" {
 		t.Language = "golang"
 	}
-	if name != "" {
-		t.OutputDir = filepath.Join(t.OutputDir, name)
-	}
-	if t.TablePrefix == "" {
-		t.TablePrefix = part.TablePrefix
-	}
-	if t.IncludeTables == nil {
-		t.IncludeTables = part.IncludeTables
-	}
-	if t.ExcludeTables == nil {
-		t.ExcludeTables = part.ExcludeTables
+	if key != "" {
+		t.OutputDir = filepath.Join(t.OutputDir, key)
 	}
 	return t
 }

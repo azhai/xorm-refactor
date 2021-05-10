@@ -1,0 +1,16 @@
+{
+    "default": {
+        "driver_name": "mysql",
+        "table_prefix": "t_",
+        "include_tables": ["t_*"],
+        "log_file": "./logs/sql.log",
+        "params": {
+            "host": "127.0.0.1",
+            "port": 3306,
+            "username": "dba",
+            "password": "pass",
+            "database": "test",
+            "options": { "charset": "utf8mb4" }
+        }
+    }
+}

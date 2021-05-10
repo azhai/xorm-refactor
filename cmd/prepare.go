@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	VERSION = "1.0.4"
+	VERSION = "1.0.8"
 )
 
 var (
@@ -38,7 +38,7 @@ func Prepare(configFiles []string) (*setting.Configure, error) {
 	}
 	settings, err := setting.ReadSettings(fileName)
 	if settings != nil {
-		verbose = settings.Application.Debug
+		verbose = settings.Debug
 	} else if err == nil {
 		err = fmt.Errorf("settings is empty")
 	}

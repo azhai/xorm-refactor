@@ -1,0 +1,8 @@
+debug: false
+reverse_target:
+  output_dir: "./models"
+  init_name_space: "xorm-refactor/models"
+  include_tables:
+    - "t_*"
+  multiple_files: false # 每个model一个go文件
+  apply_mixins: true    # 使用已知的Mixin替换部分字段

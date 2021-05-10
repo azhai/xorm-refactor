@@ -70,7 +70,7 @@ func GetCreatedColumn(table *schemas.Table) string {
 
 func GetTableSchemas(source *setting.ReverseSource, target *setting.ReverseTarget, verbose bool) []*schemas.Table {
 	var tableSchemas []*schemas.Table
-	engine, err := source.Connect(verbose)
+	engine, _, err := source.Connect(verbose)
 	if err != nil {
 		panic(err)
 	}
@@ -131,7 +131,7 @@ func convertMapper(mapname string) names.Mapper {
 	}
 }
 
-func Reverse(target *setting.ReverseTarget, source *setting.DataSource, verbose bool) error {
+func Reverse(target *setting.ReverseTarget, source *setting.ReverseSource, verbose bool) error {
 	formatter := formatters[target.Formatter]
 	lang := GetLanguage(target.Language)
 	if lang != nil {
@@ -143,10 +143,10 @@ func Reverse(target *setting.ReverseTarget, source *setting.DataSource, verbose 
 	}
 
 	isRedis := true
-	if source.ReverseSource.Database != "redis" {
+	if source.DriverName != "redis" {
 		isRedis = false
-		tableSchemas := GetTableSchemas(source.ReverseSource, target, verbose)
-		err := RunReverse(target, tableSchemas)
+		tableSchemas := GetTableSchemas(source, target, verbose)
+		err := RunReverse(source.TablePrefix, target, tableSchemas)
 		if err != nil {
 			return err
 		}
@@ -165,7 +165,6 @@ func Reverse(target *setting.ReverseTarget, source *setting.DataSource, verbose 
 	data := map[string]interface{}{
 		"Target":       target,
 		"NameSpace":    target.NameSpace,
-		"ConnKey":      source.ConnKey,
 		"ImporterPath": source.ImporterPath,
 	}
 	if err := tmpl.Execute(buf, data); err != nil {
@@ -175,7 +174,7 @@ func Reverse(target *setting.ReverseTarget, source *setting.DataSource, verbose 
 	_, err := formatter(fileName, buf.Bytes())
 
 	if target.ApplyMixins {
-		_err := ExecApplyMixins(target)
+		_err := ExecApplyMixins(target, verbose)
 		if _err != nil {
 			err = _err
 		}
@@ -183,7 +182,7 @@ func Reverse(target *setting.ReverseTarget, source *setting.DataSource, verbose 
 	return err
 }
 
-func RunReverse(target *setting.ReverseTarget, tableSchemas []*schemas.Table) error {
+func RunReverse(tablePrefix string, target *setting.ReverseTarget, tableSchemas []*schemas.Table) error {
 	// load configuration from language
 	lang := GetLanguage(target.Language)
 	funcs := newFuncs()
@@ -216,8 +215,6 @@ func RunReverse(target *setting.ReverseTarget, tableSchemas []*schemas.Table) er
 		qt, err := ioutil.ReadFile(target.QueryTemplatePath)
 		if err == nil && len(qt) > 0 {
 			tmplQuery = NewTemplate("custom-query", string(qt), funcs)
-		} else {
-			target.GenQueryMethods = false
 		}
 	} else {
 		tmplQuery = GetGolangTemplate("query", funcs)
@@ -239,8 +236,8 @@ func RunReverse(target *setting.ReverseTarget, tableSchemas []*schemas.Table) er
 	tables := make(map[string]*schemas.Table)
 	for _, table := range tableSchemas {
 		tableName := table.Name
-		if target.TablePrefix != "" {
-			table.Name = strings.TrimPrefix(table.Name, target.TablePrefix)
+		if tablePrefix != "" {
+			table.Name = strings.TrimPrefix(table.Name, tablePrefix)
 		}
 		for _, col := range table.Columns() {
 			col.FieldName = colMapper.Table2Obj(col.Name)
@@ -268,7 +265,7 @@ func RunReverse(target *setting.ReverseTarget, tableSchemas []*schemas.Table) er
 		if _, err = formatter(fileName, buf.Bytes()); err != nil {
 			return err
 		}
-		if target.GenQueryMethods && tmplQuery != nil {
+		if tmplQuery != nil {
 			buf.Reset()
 			data["Imports"] = queryImports
 			if err = tmplQuery.Execute(buf, data); err != nil {
@@ -292,7 +289,7 @@ func RunReverse(target *setting.ReverseTarget, tableSchemas []*schemas.Table) er
 			if err = tmpl.Execute(buf, data); err != nil {
 				return err
 			}
-			if target.GenQueryMethods && tmplQuery != nil {
+			if tmplQuery != nil {
 				data["Imports"] = queryImports
 				if err = tmplQuery.Execute(buf, data); err != nil {
 					return err
@@ -308,27 +305,24 @@ func RunReverse(target *setting.ReverseTarget, tableSchemas []*schemas.Table) er
 }
 
 func ExecReverseSettings(cfg setting.IReverseConfig, verbose bool, names ...string) error {
-	conns := cfg.GetConnConfigMap(names...)
-	targets := cfg.GetReverseTargets()
-	if len(targets) == 0 {
+	target := cfg.GetReverseTarget("*")
+	if target.OutputDir == "/dev/null" {
 		return nil
 	}
-	var target setting.ReverseTarget
+	conns := cfg.GetConnConfigMap(names...)
 	imports := make(map[string]string)
 	for key, conf := range conns {
-		d := setting.NewDataSource(conf, key)
-		if d.ReverseSource == nil {
-			continue
+		src, _ := setting.NewReverseSource(conf)
+		target = target.MergeOptions(key, src)
+		if err := Reverse(&target, src, verbose); err != nil {
+			return err
 		}
-		for _, target = range targets {
-			target = target.MergeOptions(d.ConnKey, d.PartConfig)
-			if err := Reverse(&target, d, verbose); err != nil {
-				return err
-			}
-			imports[d.ConnKey] = target.NameSpace
-		}
+		imports[key] = target.NameSpace
 	}
-	return GenModelInitFile(target, imports)
+	if target.InitNameSpace != "" {
+		return GenModelInitFile(target, imports)
+	}
+	return nil
 }
 
 func GenModelInitFile(target setting.ReverseTarget, imports map[string]string) error {
@@ -355,7 +349,7 @@ func GenModelInitFile(target setting.ReverseTarget, imports map[string]string) e
 	return err
 }
 
-func ExecApplyMixins(target *setting.ReverseTarget) error {
+func ExecApplyMixins(target *setting.ReverseTarget, verbose bool) error {
 	if target.MixinDirPath != "" {
 		files, _ := filesystem.FindFiles(target.MixinDirPath, ".go")
 		for fileName := range files {
@@ -368,7 +362,7 @@ func ExecApplyMixins(target *setting.ReverseTarget) error {
 	files, _ := filesystem.FindFiles(target.OutputDir, ".go")
 	var err error
 	for fileName := range files {
-		_err := rewrite.ParseAndMixinFile(fileName, true)
+		_err := rewrite.ParseAndMixinFile(fileName, verbose)
 		if _err != nil {
 			err = _err
 		}

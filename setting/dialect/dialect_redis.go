@@ -70,6 +70,10 @@ func (r *Redis) ParseOptions(opts string) (err error) {
 	return
 }
 
+func (r *Redis) GetOptions() []redis.DialOption {
+	return r.options
+}
+
 func (r *Redis) Connect(verbose bool) (redis.Conn, error) {
 	if r.addr == "" {
 		return nil, fmt.Errorf("the address of redis server is empty")

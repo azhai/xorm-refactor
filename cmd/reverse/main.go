@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"gitee.com/azhai/xorm-refactor"
+	refactor "gitee.com/azhai/xorm-refactor"
 	"gitee.com/azhai/xorm-refactor/cmd"
 	"github.com/urfave/cli/v2"
 )
@@ -39,7 +39,8 @@ func ReverseAction(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	names, verbose := ctx.Args().Slice(), cmd.Verbose()
+	names := ctx.Args().Slice()
+	verbose := cmd.Verbose() || ctx.Bool("verbose")
 	err = refactor.ExecReverseSettings(settings, verbose, names...)
 	return err
 }

@@ -14,20 +14,16 @@ import (
 	{{range $imp, $al := .Imports}}{{$al}} "{{$imp}}"{{end}}
 )
 {{end -}}
-{{$gen_json := .Target.GenJsonTag -}}
-{{$gen_table := .Target.GenTableName -}}
 
 {{range $table_name, $table := .Tables}}
 {{$class := TableMapper $table.Name}}
 type {{$class}} struct { {{- range $table.ColumnsSeq}}{{$col := $table.GetColumn .}}
-	{{ColumnMapper $col.Name}} {{Type $col}} %s{{Tag $table $col $gen_json}}%s{{end}}
+	{{ColumnMapper $col.Name}} {{Type $col}} %s{{Tag $table $col true}}%s{{end}}
 }
 
-{{if $gen_table -}}
 func ({{$class}}) TableName() string {
 	return "{{$table_name}}"
 }
-{{end -}}
 {{end}}
 `, "`", "`")
 
@@ -51,16 +47,14 @@ var (
 )
 
 // 初始化、连接数据库和缓存
-func Initialize(r *setting.ReverseSource, logger log.Logger, verbose bool) {
+func Initialize(c ConnConfig, verbose bool) {
 	var wrapper *redisw.RedisWrapper
-	d := setting.ReverseSource2RedisDialect(r)
-	conn, err := d.Connect(verbose)
-	if err == nil {
+	if conn, err := c.ConnectRedis(verbose); err == nil {
 		wrapper = redisw.NewRedisConnMux(conn)
 		wrapper.MaxReadTime = 0 // 不支持 ConnWithTimeout 和 DoWithTimeout
 	} else {
 		dial := func() (redis.Conn, error) {
-			return d.Connect(verbose)
+			return c.ConnectRedis(verbose)
 		}
 		wrapper = redisw.NewRedisPool(dial, -1)
 	}
@@ -109,13 +103,15 @@ var (
 )
 
 // 初始化、连接数据库和缓存
-func Initialize(r *setting.ReverseSource, logger log.Logger, verbose bool) {
+func Initialize(c ConnConfig, verbose bool) {
 	var err error
-	engine, err = r.Connect(verbose)
-	if err != nil {
+	if engine, err = c.ConnectXorm(verbose); err != nil {
 		panic(err)
 	}
-	engine.SetLogger(logger)
+	if c.LogFile != "" {
+		logger := setting.NewSqlLogger(c.LogFile)
+		engine.SetLogger(logger)
+	}
 }
 
 // 查询某张数据表
@@ -195,18 +191,16 @@ func init() {
 		panic(err)
 	}
 	confs := settings.GetConnConfigMap()
-	ConnectDatabases(confs, settings.Logging.SqlFile)
+	ConnectDatabases(confs)
 }
 
-func ConnectDatabases(confs map[string]setting.ConnConfig, logfile string) {
+func ConnectDatabases(confs map[string]setting.ConnConfig) {
 	verbose := cmd.Verbose()
-	logger := setting.NewSqlLogger(logfile)
 	for key, c := range confs {
-		r, _ := setting.NewReverseSource(c)
 		switch key {
 		{{- range $dir, $al := .Imports}}
 			case "{{$dir}}":
-			{{$al}}.Initialize(r, logger, verbose){{end}}
+			{{$al}}.Initialize(c, verbose){{end}}
 		}
 	}
 }
@@ -225,6 +219,8 @@ import (
 {{$class := TableMapper .Name -}}
 {{$pkey := GetSinglePKey . -}}
 {{$created := GetCreatedColumn . -}}
+// the queries of {{$class}}
+
 func (m *{{$class}}) Load(where interface{}, args ...interface{}) (bool, error) {
 	return Table().Where(where, args...).Get(m)
 }
@@ -241,7 +237,16 @@ func (m *{{$class}}) Save(changes map[string]interface{}) error {
 		}
 	})
 }
-{{end -}}
+{{end}}
+
+func (m *{{$class}}) InsertBatch(rows []map[string]interface{}) error {
+	if len(rows) == 0 {
+		return nil
+	}
+	return ExecTx(func(tx *xorm.Session) (int64, error) {
+		return tx.Table(m).Insert(rows)
+	})
+}
 {{end -}}
 `
 )

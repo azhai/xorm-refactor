@@ -3,6 +3,8 @@
 .idea/
 .vs/
 .vscode/
+go.sum
+logs/
 models/
 vendor/
 
