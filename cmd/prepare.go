@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	VERSION = "1.0.8"
+	VERSION = "1.1.0"
 )
 
 var (
@@ -30,13 +30,8 @@ func FindFirstFile(fileNames []string, minSize int64) string {
 	return ""
 }
 
-func Prepare(configFiles []string) (*setting.Configure, error) {
-	fileName := FindFirstFile(configFiles, 0)
-	if fileName == "" {
-		err := fmt.Errorf("need reverse file")
-		return nil, err
-	}
-	settings, err := setting.ReadSettings(fileName)
+func Prepare(fileName, nameSpace string) (*setting.Configure, error) {
+	settings, err := setting.ReadSettings(fileName, nameSpace)
 	if settings != nil {
 		verbose = settings.Debug
 	} else if err == nil {

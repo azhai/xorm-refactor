@@ -26,6 +26,12 @@ func main() {
 			Usage:   "配置文件路径",
 			Value:   "settings.yml",
 		},
+		&cli.StringFlag{
+			Name:    "namespace",
+			Aliases: []string{"ns"},
+			Usage:   "项目NameSpace",
+			Value:   "xorm-refactor",
+		},
 	}
 	err := app.Run(os.Args)
 	if err != nil {
@@ -34,8 +40,9 @@ func main() {
 }
 
 func ReverseAction(ctx *cli.Context) error {
-	configFiles := []string{ctx.String("file")}
-	settings, err := cmd.Prepare(configFiles)
+	configFile := ctx.String("file")
+	nameSpace := ctx.String("namespace")
+	settings, err := cmd.Prepare(configFile, nameSpace)
 	if err != nil {
 		return err
 	}

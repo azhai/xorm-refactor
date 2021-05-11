@@ -9,6 +9,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"text/template"
 
@@ -317,8 +318,10 @@ func GenModelInitFile(target setting.ReverseTarget, imports map[string]string) e
 	}
 	buf := new(bytes.Buffer)
 	data := map[string]interface{}{
-		"Target":  target,
-		"Imports": imports,
+		"Target":         target,
+		"Imports":        imports,
+		"ModelNameSpace": target.InitNameSpace,
+		"ProjNameSpace":  filepath.Dir(target.InitNameSpace),
 	}
 	if err := tmpl.Execute(buf, data); err != nil {
 		return err

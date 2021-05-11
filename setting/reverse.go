@@ -82,7 +82,6 @@ type ReverseTarget struct {
 	Language          string   `json:"language" yaml:"language"`
 	IncludeTables     []string `json:"include_tables" yaml:"include_tables"`
 	ExcludeTables     []string `json:"exclude_tables" yaml:"exclude_tables"`
-	NameSpace         string   `json:"name_space" yaml:"name_space"`
 	InitNameSpace     string   `json:"init_name_space" yaml:"init_name_space"`
 	OutputDir         string   `json:"output_dir" yaml:"output_dir"`
 	TemplatePath      string   `json:"template_path" yaml:"template_path"`
@@ -94,12 +93,29 @@ type ReverseTarget struct {
 	Funcs        map[string]string `json:"funcs" yaml:"funcs"`
 	Formatter    string            `json:"formatter" yaml:"formatter"`
 	Importter    string            `json:"importter" yaml:"importter"`
-	ExtName      string            `json:"ext_name" yaml:"ext_name"`
+	ExtName      string            `json:"-" yaml:"-"`
+	NameSpace    string            `json:"-" yaml:"-"`
 
 	MultipleFiles  bool   `json:"multiple_files" yaml:"multiple_files"`
 	ApplyMixins    bool   `json:"apply_mixins" yaml:"apply_mixins"`
 	MixinDirPath   string `json:"mixin_dir_path" yaml:"mixin_dir_path"`
 	MixinNameSpace string `json:"mixin_name_space" yaml:"mixin_name_space"`
+}
+
+func DefaultReverseTarget(nameSpace string) ReverseTarget {
+	return ReverseTarget{
+		Language:      "golang",
+		InitNameSpace: nameSpace + "/models",
+		OutputDir:     "./models",
+	}
+}
+
+func DefaultMixinReverseTarget(nameSpace string) ReverseTarget {
+	rt := DefaultReverseTarget(nameSpace)
+	rt.ApplyMixins = true
+	rt.MixinDirPath = filepath.Join(rt.OutputDir, "mixins")
+	rt.MixinNameSpace = rt.InitNameSpace + "/mixins"
+	return rt
 }
 
 func (t ReverseTarget) GetFileName(dir, name string) string {

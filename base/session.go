@@ -91,7 +91,6 @@ func (sess *Session) GetKey() string {
 }
 
 func (sess *Session) WrapExec(cmd string, args ...interface{}) (interface{}, error) {
-	// pp.Println(cmd, args)
 	return sess.reg.Exec(cmd, args...)
 }
 

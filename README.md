@@ -97,20 +97,23 @@ init.go 中含有 Initialize() 方法，通过下面的方法，在程序入口 
 package main
 
 import (
+    "fmt"
+    
 	"gitee.com/azhai/xorm-refactor/setting"
-	"my-project/models/db"
-	"xorm.io/xorm/log"
+    db "my-project/models/default"
 )
 
-var verbose bool // 详细输出
-
 func init() {
-	cfg, err := setting.ReadSettings("settings.yml")
+    confs := make(map[string]setting.ConnConfig)
+    _, err := setting.ReadSettingsExt("databases.json", &confs)
 	if err != nil {
 		panic(err)
 	}
-    logger := &log.DiscardLogger{}
-	db.Initialize(cfg, logger, verbose)
+    if conf, ok := confs["default"]; ok {
+        db.Initialize(conf, false)
+    } else {
+        panic(fmt.Errorf("the config named default not found"))
+    }
 }
 ```
 
@@ -163,12 +166,33 @@ go get gitee.com/azhai/xorm-refactor
 
 ```
 make all
-./reverse -c tests/settings.yml
+./refactor -ns my-project
+#./refactor -c tests/settings.yml
 ```
 
 ## 配置文件
 
-一个典型的配置文件看起来如下：
+传递项目的NameSpace和下面的数据库配置文件databases.json，其他使用默认配置
+
+```json
+{
+    "default": {
+        "driver_name": "mysql",
+        "table_prefix": "t_",
+        "log_file": "./logs/sql.log",
+        "params": {
+            "host": "127.0.0.1",
+            "port": 3306,
+            "username": "root",
+            "password": "",
+            "database": "test",
+            "options": { "charset": "utf8mb4" }
+        }
+    }
+}
+```
+
+或者使用一个完整的YAML配置文件看起来如下：
 
 ```yml
 debug: true
@@ -185,6 +209,11 @@ reverse_target:
    apply_mixins: true      # 使用已知的Mixin替换部分字段
    mixin_dir_path: ""      # 额外的mixin目录
    mixin_name_space: ""    # 额外的mixin包名
+   include_tables:         # 包含的表，以下可以用
+   - "a*"
+   - "b*"
+   exclude_tables:         # 排除的表，以下不可用
+   - "c"
 
 _mysql: &mysql           #共用数据库配置
    driver_name: "mysql"
@@ -194,7 +223,7 @@ _mysql: &mysql           #共用数据库配置
       username: "root"
       password: ""
       database: "test"
-      options: { charset: "utf8" }
+      options: { charset: "utf8mb4" }
 
 connections:
    cache:
@@ -207,10 +236,5 @@ connections:
    default:
       read_only: false
       table_prefix: "t_" # 表前缀
-      include_tables:    # 包含的表，以下可以用
-         - "a*"
-         - "b*"
-      exclude_tables:    # 排除的表，以下可以用
-         - "c"
       <<: *mysql         #引用mysql配置
 ```

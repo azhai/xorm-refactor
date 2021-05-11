@@ -2,6 +2,7 @@ package setting
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -64,7 +65,7 @@ func ReadSettingsFrom(fileType, fileName string, cfg interface{}) error {
 		if err == nil {
 			err = json.Unmarshal(content, &cfg)
 		}
-	case "yaml", "Yaml", "YAML":
+	case "yml", "yaml", "Yaml", "YAML":
 		var fp *os.File
 		fp, err = os.Open(fileName)
 		if err == nil {
@@ -74,20 +75,40 @@ func ReadSettingsFrom(fileType, fileName string, cfg interface{}) error {
 	return err
 }
 
-func ReadSettings(fileName string) (*Configure, error) {
-	cfg, fileType := new(Configure), "yaml"
-	err := ReadSettingsFrom(fileType, fileName, &cfg)
+func ReadSettingsExt(fileName string, cfg interface{}) (string, error) {
+	pos := strings.LastIndex(fileName, ".")
+	fileExt := strings.ToLower(fileName[pos+1:])
+	if fileExt == "yml" || fileExt == "yaml" || fileExt == "json" {
+		return fileExt, ReadSettingsFrom(fileExt, fileName, cfg)
+	}
+	size, exists := filesystem.FileSize(fileName + ".yml")
+	if exists || size > 0 {
+		return "yml", ReadSettingsFrom("yml", fileName+".yml", cfg)
+	}
+	size, exists = filesystem.FileSize(fileName + ".yaml")
+	if exists || size > 0 {
+		return "yaml", ReadSettingsFrom("yaml", fileName+".yaml", cfg)
+	}
+	size, exists = filesystem.FileSize(fileName + ".json")
+	if exists || size > 0 {
+		return "json", ReadSettingsFrom("json", fileName+".json", cfg)
+	}
+	return "", fmt.Errorf("Unknow settings file")
+}
+
+func ReadSettings(fileName, nameSpace string) (*Configure, error) {
+	cfg, ext, err := new(Configure), "", fmt.Errorf("settings is empty")
+	if fileName == "" {
+		fileName, ext = "./settings.yml", "yml"
+	} else {
+		ext, err = ReadSettingsExt(fileName, &cfg)
+	}
 	if err != nil {
-		return cfg, err
+		cfg.ReverseTarget = DefaultMixinReverseTarget(nameSpace)
 	}
 	if cfg.Connections == nil {
-		dbFileName := strings.Replace(fileName, "settings.yml", "databases.yml", 1)
-		size, exists := filesystem.FileSize(dbFileName)
-		if exists == false || size <= 0 {
-			dbFileName = strings.Replace(fileName, "settings.yml", "databases.json", 1)
-			fileType = "json"
-		}
-		err = ReadSettingsFrom(fileType, dbFileName, &cfg.Connections)
+		dbFileName := strings.Replace(fileName, "settings."+ext, "databases", 1)
+		_, err = ReadSettingsExt(dbFileName, &cfg.Connections)
 	}
 	if err == nil && len(cfg.Connections) > 0 {
 		cfg.RemovePrivates()

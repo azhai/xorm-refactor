@@ -182,6 +182,8 @@ func InsertBatch(tableName string, rows []map[string]interface{}) error {
 
 {{$initns := .Target.InitNameSpace -}}
 import (
+	"strings"
+
 	"gitee.com/azhai/xorm-refactor/cmd"
 	"gitee.com/azhai/xorm-refactor/setting"
 
@@ -192,16 +194,27 @@ import (
 
 var (
 	configFiles = []string{ // 设置多个路径，方便从子目录下运行
+		"./databases.json", "../databases.json", "../../databases.json",
+		"./databases.yml", "../databases.yml", "../../databases.yml",
 		"./settings.yml", "../settings.yml", "../../settings.yml",
 	}
 )
 
 func init() {
-	settings, err := cmd.Prepare(configFiles)
-	if err != nil {
-		panic(err)
+	confs := make(map[string]setting.ConnConfig)
+	fileName := cmd.FindFirstFile(configFiles, 0)
+	if strings.Contains(fileName, "database") {
+		_, err := setting.ReadSettingsExt(fileName, &confs)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		settings, err := cmd.Prepare(fileName, "{{.ProjNameSpace}}")
+		if err != nil {
+			panic(err)
+		}
+		confs = settings.GetConnConfigMap()
 	}
-	confs := settings.GetConnConfigMap()
 	ConnectDatabases(confs)
 }
 
