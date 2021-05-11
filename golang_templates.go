@@ -17,6 +17,7 @@ import (
 
 {{range $table_name, $table := .Tables}}
 {{$class := TableMapper $table.Name}}
+// {{$class}} {{$table.Comment}}
 type {{$class}} struct { {{- range $table.ColumnsSeq}}{{$col := $table.GetColumn .}}
 	{{ColumnMapper $col.Name}} {{Type $col}} %s{{Tag $table $col true}}%s{{end}}
 }
@@ -46,8 +47,8 @@ var (
 	sessreg *base.SessionRegistry
 )
 
-// 初始化、连接数据库和缓存
-func Initialize(c ConnConfig, verbose bool) {
+// Initialize 初始化、连接缓存
+func Initialize(c setting.ConnConfig, verbose bool) {
 	var wrapper *redisw.RedisWrapper
 	if conn, err := c.ConnectRedis(verbose); err == nil {
 		wrapper = redisw.NewRedisConnMux(conn)
@@ -61,12 +62,12 @@ func Initialize(c ConnConfig, verbose bool) {
 	sessreg = base.NewRegistry(wrapper)
 }
 
-// 获得当前会话管理器
+// Registry 获得当前会话管理器
 func Registry() *base.SessionRegistry {
 	return sessreg
 }
 
-// 获得用户会话
+// Session 获得用户会话
 func Session(token string) *base.Session {
 	if sessreg == nil {
 		return nil
@@ -79,7 +80,7 @@ func Session(token string) *base.Session {
 	return sess
 }
 
-// 删除会话
+// DelSession 删除会话
 func DelSession(token string) bool {
 	if sessreg == nil {
 		return false
@@ -102,8 +103,8 @@ var (
 	engine  *xorm.Engine
 )
 
-// 初始化、连接数据库和缓存
-func Initialize(c ConnConfig, verbose bool) {
+// Initialize 初始化、连接数据库
+func Initialize(c setting.ConnConfig, verbose bool) {
 	var err error
 	if engine, err = c.ConnectXorm(verbose); err != nil {
 		panic(err)
@@ -114,12 +115,12 @@ func Initialize(c ConnConfig, verbose bool) {
 	}
 }
 
-// 查询某张数据表
+// Engine 获取当前数据库连接
 func Engine() *xorm.Engine {
 	return engine
 }
 
-// 转义表名或字段名
+// Quote 转义表名或字段名
 func Quote(value string) string {
 	if engine == nil {
 		return value
@@ -127,7 +128,7 @@ func Quote(value string) string {
 	return engine.Quote(value)
 }
 
-// 查询某张数据表
+// Table 查询某张数据表
 func Table(args ...interface{}) *xorm.Session {
 	if engine == nil {
 		return nil
@@ -138,19 +139,7 @@ func Table(args ...interface{}) *xorm.Session {
 	return engine.Table(args[0])
 }
 
-// 执行事务
-func ExecTx(modify base.ModifyFunc) error {
-	tx := engine.NewSession() // 必须是新的session
-	defer tx.Close()
-	_ = tx.Begin()
-	if _, err := modify(tx); err != nil {
-		_ = tx.Rollback() // 失败回滚
-		return err
-	}
-	return tx.Commit()
-}
-
-// 查询多行数据
+// QueryAll 查询多行数据
 func QueryAll(filter base.FilterFunc, pages ...int) *xorm.Session {
 	query := engine.NewSession()
 	if filter != nil {
@@ -164,6 +153,28 @@ func QueryAll(filter base.FilterFunc, pages ...int) *xorm.Session {
 		}
 	}
 	return base.Paginate(query, pageno, pagesize)
+}
+
+// ExecTx 执行事务
+func ExecTx(modify base.ModifyFunc) error {
+	tx := engine.NewSession() // 必须是新的session
+	defer tx.Close()
+	_ = tx.Begin()
+	if _, err := modify(tx); err != nil {
+		_ = tx.Rollback() // 失败回滚
+		return err
+	}
+	return tx.Commit()
+}
+
+// InsertBatch 写入多行数据
+func InsertBatch(tableName string, rows []map[string]interface{}) error {
+	if len(rows) == 0 {
+		return nil
+	}
+	return ExecTx(func(tx *xorm.Session) (int64, error) {
+		return tx.Table(tableName).Insert(rows)
+	})
 }
 `
 
@@ -238,15 +249,6 @@ func (m *{{$class}}) Save(changes map[string]interface{}) error {
 	})
 }
 {{end}}
-
-func (m *{{$class}}) InsertBatch(rows []map[string]interface{}) error {
-	if len(rows) == 0 {
-		return nil
-	}
-	return ExecTx(func(tx *xorm.Session) (int64, error) {
-		return tx.Table(m).Insert(rows)
-	})
-}
 {{end -}}
 `
 )
